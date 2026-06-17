@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/yellow_tripdata_2019-01.csv
+data/processed/trips_clean.csv
+data/taxi_zones_shp/
+logs/excluded_records.csv
+.DS_Store
