@@ -381,3 +381,32 @@ def breakdown_payment():
     } for r in rows])
 
 
+
+
+@api.get("/breakdown/borough")
+def breakdown_borough():
+    # Trips, revenue and average speed for each pickup borough.
+    rows = grouped(
+        request.args,
+        trips_select="zpu.borough AS borough, COUNT(*) AS trips, "
+                     "COALESCE(SUM(t.total_amount), 0) AS revenue, "
+                     "AVG(t.avg_speed_mph) AS avg_speed",
+        summary_select="zpu.borough AS borough, SUM(s.trips_n) AS trips, "
+                       "COALESCE(SUM(s.sum_total), 0) AS revenue, "
+                       "SUM(s.sum_speed) / SUM(s.trips_n) AS avg_speed",
+        group_by="GROUP BY borough",
+    )
+    return jsonify([{
+        "borough": r["borough"],
+        "trips": int(r["trips"]),
+        "revenue": round(float(r["revenue"]), 2),
+        "avg_speed": round(float(r["avg_speed"]), 2),
+    } for r in rows])
+
+
+@api.get("/zones/geojson")
+def zones_geojson():
+    # The map outlines, built once by pipeline/zones_geojson.py.
+    return send_file(Config.GEOJSON_PATH, mimetype="application/geo+json")
+
+
