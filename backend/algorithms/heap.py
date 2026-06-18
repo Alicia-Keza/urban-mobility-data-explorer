@@ -67,5 +67,25 @@ class MinHeap:
             self.items[0] = last #move that last item to the front
             self.bubble_down(0) #let it sink so the heap stays valid
         return front #give back the item we removed
-    
-     
+
+    def top_k(rows, get_value, k):
+        #return the k rows with the biggest value, biggest first
+        if k <= 0:
+            return [] #nothing to return
+        
+        heap =MinHeap()
+        for row in rows:
+            value = get_value(row) #read the number we rank on
+            if value is None:
+                continue #skip rows with no value
+            if heap.size() < k:
+                heap.add(value, row) #heap not full : just add
+            elif value > heap.smallest()[0]:
+                heap.replace_smallest(value, row) #heap full and new item beats smallest : swap it in
+
+        #the heap gives items back smallest first, but we want biggest first, so we fill the result list from the back to the front
+        result = [None] * heap.size()
+        for i in range(len(result) -1, -1, -1):
+            value,row = heap.take_smallest()
+            result[i] = row
+        return result
