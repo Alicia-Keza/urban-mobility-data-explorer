@@ -188,3 +188,56 @@ def summary():
             result[key] = float(value)
     return jsonify(result)
 
+
+
+@api.get("/trips")
+def trips():
+    # The paginated, sortable table of individual trips. This always reads the
+    # full trips table because it shows single rows, not totals.
+    args = request.args
+    where, values = trips_where(args)
+
+    sort = SORT_COLUMNS.get(args.get("sort", "pickup_datetime"), "t.pickup_datetime")
+    order = "ASC" if args.get("order", "desc").lower() == "asc" else "DESC"
+    limit = min(int(args.get("limit", 25)), 200)
+    page = max(int(args.get("page", 1)), 1)
+    offset = (page - 1) * limit
+
+    # How many trips match (needed to show the page count). When the summary
+    # table can be used, getting the count from it is much faster.
+    if using_full_table(args):
+        total = query_one(f"SELECT COUNT(*) AS n {TRIPS_FROM} {where}", values)["n"]
+    else:
+        s_where, s_values = summary_where(args)
+        total = int(query_one(
+            f"SELECT COALESCE(SUM(s.trips_n), 0) AS n {SUMMARY_FROM} {s_where}",
+            s_values)["n"])
+
+    # The page of rows. We also join the dropoff zone (zdo) and payment type.
+    rows = query_all(f"""
+        SELECT t.trip_id, t.pickup_datetime, t.dropoff_datetime,
+               t.passenger_count, t.trip_distance, t.trip_duration_min,
+               t.avg_speed_mph, t.fare_amount, t.tip_amount, t.tip_pct,
+               t.total_amount,
+               zpu.zone_name AS pickup_zone,  zpu.borough AS pickup_borough,
+               zdo.zone_name AS dropoff_zone, zdo.borough AS dropoff_borough,
+               pt.description AS payment
+        {TRIPS_FROM}
+        JOIN zones zdo ON zdo.zone_id = t.do_location_id
+        JOIN payment_types pt ON pt.payment_type_id = t.payment_type_id
+        {where}
+        ORDER BY {sort} {order}
+        LIMIT %s OFFSET %s
+    """, values + [limit, offset])
+
+    # Turn datetimes into text and the money columns into plain numbers.
+    for row in rows:
+        row["pickup_datetime"] = str(row["pickup_datetime"])
+        row["dropoff_datetime"] = str(row["dropoff_datetime"])
+        for col in ("trip_distance", "trip_duration_min", "avg_speed_mph",
+                    "fare_amount", "tip_amount", "tip_pct", "total_amount"):
+            row[col] = float(row[col])
+
+    return jsonify({"total": total, "page": page, "limit": limit, "rows": rows})
+
+
