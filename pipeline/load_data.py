@@ -81,5 +81,46 @@ def load_lookups(conn):
         print(f"Lookup tables loaded: {len(rows)} zones, {len(VENDORS)} vendors, "
               f"{len(RATE_CODES)} rate codes, {len(PAYMENT_TYPES)} payment types")
         
+def load_trips(conn):
+    cursor = conn.cursor()
+    start_time = time.time()
+    cursor.execute("SELECT COUNT(*) FROM trips")
+    existing = cursor.fetchone()[0]
+    if existing:
+        print(f"trips already has {existing:,} rows, emptying it first")
+        cursor.execute("SET FOREIGN_KEY_CHECKS=0")
+        cursor.execute("TRUNCATE TABLE trips")
+        cursor.execute("SET FOREIGN_KEY_CHECKS=1")
+    print("Loading trips (this is the slow part)...")
+    start = time.time()
+    cursor.execute(f"""
+        LOAD DATA LOCAL INFILE '{CLEAN_CSV}'
+        INTO TABLE trips 
+        FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+        LINES TERMINATED BY '\\n'
+        (vendor_id, pickup_datetime, dropoff_datetime, passenger_count, 
+        trip_distance, rate_code_id, store_and_fwd_flag, pu_location_id, 
+        do_location_id, payment_type_id, fare_amount, extra, mta_tax,
+        tip_amount, tolls_amount, improvement_surcharge,
+        congestion_surcharge, total_amount, trip_duration_min,
+        avg_speed_mph, fare_per_mile, tip_pct, pickup_day, pickup_hour,
+        day_of_week, is_weekend)
+    """)
 
+    conn.commit()
+
+    cursor.execute("SELECT COUNT(*) FROM trips")
+    loaded = cursor.fetchone()[0]
+    print(f"Loaded {loaded:,} trips in {time.time()  - start:.1f} s")
+
+    with open(CLEAN_CSV) as f:
+        csv_rows = sum(1 for _ in f) 
+    if loaded != csv_rows:
+        print(f"WARNING: csv has {csv_rows:,} rows but only {loaded:,} loaded"
+              f" - check the lookup tables")    
+    cursor.close()
+
+
+    
+    
                          
