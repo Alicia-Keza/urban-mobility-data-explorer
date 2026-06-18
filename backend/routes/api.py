@@ -137,3 +137,54 @@ def grouped(args, trips_select, summary_select, group_by=""):
         sql = f"SELECT {summary_select} {SUMMARY_FROM} {where} {group_by}"
     return query_all(sql, values)
 
+
+
+
+@api.get("/meta")
+def meta():
+    # Values the page needs to fill its filter boxes: the date range, the list
+    # of boroughs, and the list of payment types.
+    bounds = query_one("SELECT MIN(pickup_datetime) AS lo, "
+                       "MAX(pickup_datetime) AS hi FROM trips")
+    boroughs = query_all("SELECT DISTINCT borough FROM zones "
+                         "WHERE borough NOT IN ('Unknown', 'N/A') "
+                         "ORDER BY borough")
+    payments = query_all("SELECT payment_type_id, description "
+                         "FROM payment_types ORDER BY payment_type_id")
+    return jsonify({
+        "date_min": str(bounds["lo"])[:10] if bounds["lo"] else None,
+        "date_max": str(bounds["hi"])[:10] if bounds["hi"] else None,
+        "boroughs": [b["borough"] for b in boroughs],
+        "payment_types": payments,
+    })
+
+
+@api.get("/summary")
+def summary():
+    # The six big numbers at the top of the page.
+    trips_select = """
+        COUNT(*) AS trips, COALESCE(SUM(t.total_amount), 0) AS revenue,
+        AVG(t.fare_amount) AS avg_fare, AVG(t.trip_distance) AS avg_distance,
+        AVG(t.trip_duration_min) AS avg_duration,
+        AVG(t.avg_speed_mph) AS avg_speed, AVG(t.tip_pct) AS avg_tip_pct
+    """
+    summary_select = """
+        SUM(s.trips_n) AS trips, COALESCE(SUM(s.sum_total), 0) AS revenue,
+        SUM(s.sum_fare) / SUM(s.trips_n) AS avg_fare,
+        SUM(s.sum_distance) / SUM(s.trips_n) AS avg_distance,
+        SUM(s.sum_duration) / SUM(s.trips_n) AS avg_duration,
+        SUM(s.sum_speed) / SUM(s.trips_n) AS avg_speed,
+        SUM(s.sum_tip_pct) / SUM(s.trips_n) AS avg_tip_pct
+    """
+    row = grouped(request.args, trips_select, summary_select)[0]
+    # trips is a whole number; everything else is a dollar/number average.
+    result = {}
+    for key, value in row.items():
+        if value is None:
+            result[key] = None
+        elif key == "trips":
+            result[key] = int(value)
+        else:
+            result[key] = float(value)
+    return jsonify(result)
+
