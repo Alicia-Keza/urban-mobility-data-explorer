@@ -74,7 +74,24 @@
             <div class="kpi"><span class="kpi-label">Avg duration</span><span class="kpi-value" id="kpi-dur">-</span></div>
             <div class="kpi"><span class="kpi-label">Avg speed</span><span class="kpi-value" id="kpi-speed">-</span></div>
         </section>
+        <main class="grid">
+            <section class="card card-map">
+                <div class="card-head">
+                    <h2>Pickup activity by taxi zone</h2>
+                    <select id="map-metric" class="inline-select">
+                        <option value="trips">Trip count</option>
+                        <option value="revenue">Revenue</option>
+                        <option value="avg_fare">Avg fare</option>
+                        <option value="avg_speed">Avg speed</option>
+                    </select>
+                </div>    
+                <div id="map"></div>
+                <div class="legend" id="map-legend"></div>
+            </section>
+                
+        </main>
     </div>
+
     
     
 </body>
