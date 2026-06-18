@@ -37,3 +37,49 @@ INDEXES = [
     ("idx_trips_total", "trips (total_amount)")
 ]
 
+def connect(database=None):
+    return mysql.connector.connect(
+        host=os.getenv("DB_HOST", "127.0.0.1"),
+        port=int(os.getenv("DB_PORT", "3306")),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=database,
+        allow_local_infile=True,
+    )
+
+def run_schema(conn):
+    with open(SCHEMA_SQL) as f:
+        statements = [s.strip() for s in f.read().split(";") if s.strip()]
+    cursor = conn.cursor()
+    for statement in statements:
+        cursor.execute(statement)
+    conn.commit()
+    cursor.close()
+
+def load_lookups(conn):
+    cursor = conn.cursor()
+
+    # Read the zone names from the lookup CSV.
+    with open(ZONE_LOOKUP, newline="") as f:
+        rows = [(int(r["LocationID"]), r["Borough"], r["Zone"], r["service_zone"])
+                for r in csv.DictReader(f)]
+
+        cursor.executemany(
+            "INSERT IGNORE INTO zones (zone_id, borough, zone_name, service_zone) " 
+            "VALUES (%s, %s, %s, %s)", rows)
+        cursor.executemany(
+        "INSERT IGNORE INTO vendors (vendor_id, vendor_name) VALUES (%s, %s)", VENDORS
+        )
+        cursor.executemany(
+            "INSERT IGNORE INTO rate_codes (rate_code_id, description) VALUES (%s, %s)", RATE_CODES
+        )
+        cursor.executemany(
+            "INSERT IGNORE INTO payment_types (payment_type_id, description) VALUES (%s, %s)", PAYMENT_TYPES
+        )
+        conn.commit()
+        cursor.close()
+        print(f"Lookup tables loaded: {len(rows)} zones, {len(VENDORS)} vendors, "
+              f"{len(RATE_CODES)} rate codes, {len(PAYMENT_TYPES)} payment types")
+        
+
+                         
