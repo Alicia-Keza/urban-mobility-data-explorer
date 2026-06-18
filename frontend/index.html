@@ -100,7 +100,56 @@
                 </div>
                 <div class="chart-wrap tall"> <canvas id="chart-top"></canvas></div>
             </section>
+            <section class="card">
+                <div class="card-head">
+                    <h2>Daily trips across the month</h2>
+                </div>
+                <div class="chart-wrap><canvas id="chart-daily"></canvas></div>
+            </section>
 
+            <section class="card">
+                <div class="card-head">
+                    <h2>Payment mix & tipping</h2>
+                </div>
+                <div class="chart-wrap"><canvas id="chart-payment"></canvas></div>
+            </section>
+
+            <section class="card">
+                <div class="card-head">
+                    <h2>Borough share of pickups</h2>
+                </div>
+                <div class="chart-wrap"><canvas id="chart-borough"></canvas></div>
+            </section>
+
+            <section class="card card-table">
+                <div class="card-head">
+                    <h2>Trip records</h2>
+                    <span class="muted" id="table-count"></span>
+                </div>
+                <div class="table-scroll">
+                    <table id="trips-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="pickup_datetime">Pickup</th>
+                                <th> Route </th>
+                                <th data-sort="trip_distance">Miles</th>
+                                <th data-sort="trip_duration_min">Min</th>
+                                <th data-sort="avg_speed_mph">Mph</th>
+                                <th data-sort="fare_amount">Fare</th>
+                                <th data-sort="tip_amount">Tip</th>
+                                <th data-sort="total_amount">Total</th>
+                                <th>Payment</th>
+                            </tr>
+                        </thead>  
+                        </tbody></tbody>  
+                    </table>
+                </div>
+                <div class="pager">
+                    <button id="pg-prev" class="btn">Prev</button>
+                    <span id="page-info"></span>
+                    <button id="pg-next" class="btn">Next</button>
+                </div>
+            </section>  
         </main>
     </div>
 
