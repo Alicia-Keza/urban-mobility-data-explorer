@@ -52,3 +52,58 @@ TOP_METRICS = {"trips", "revenue", "avg_fare", "avg_speed", "avg_tip_pct"}
 # The table to read from each case
 TRIPS_FROM = "FROM trips t JOIN zones zpu ON zpu.zone_id = t.pu_location_id"
 SUMMARY_FROM = "FROM agg_zone_time s JOIN zones zpu ON zpu.zone_id = s.pu_location_id"
+
+
+
+def using_full_table(args):
+    for key in ("min_fare", "max_fare", "min_dist", "max_dist"):
+        if args.get(key) not in (None, ""):
+            return True
+    return False
+
+
+def day_number(text, fallback):
+    try:
+        d = date.fromisoformat(text)
+    except (TypeError, ValueError):
+        return fallback
+    return min(31, max(1, d.day))  # 1..31
+
+
+def trips_where(args):
+    parts = []
+    values = []
+
+    if args.get("date_from"):
+        parts.append("t.pickup_datetime >= %s")
+        values.append(args["date_from"] + " 00:00:00")
+    if args.get("date_to"):
+        parts.append("t.pickup_datetime <= %s")
+        values.append(args["date_to"] + " 23:59:59")
+    if args.get("hour_from") not in (None, ""):
+        parts.append("t.pickup_hour >= %s")
+        values.append(int(args["hour_from"]))
+    if args.get("hour_to") not in (None, ""):
+        parts.append("t.pickup_hour <= %s")
+        values.append(int(args["hour_to"]))
+    if args.get("borough"):
+        parts.append("zpu.borough = %s")
+        values.append(args["borough"])
+    if args.get("payment"):
+        parts.append("t.payment_type_id = %s")
+        values.append(int(args["payment"]))
+    if args.get("min_fare") not in (None, ""):
+        parts.append("t.total_amount >= %s")
+        values.append(float(args["min_fare"]))
+    if args.get("max_fare") not in (None, ""):
+        parts.append("t.total_amount <= %s")
+        values.append(float(args["max_fare"]))
+    if args.get("min_dist") not in (None, ""):
+        parts.append("t.trip_distance >= %s")
+        values.append(float(args["min_dist"]))
+    if args.get("max_dist") not in (None, ""):
+        parts.append("t.trip_distance <= %s")
+        values.append(float(args["max_dist"]))
+    where = " WHERE " + " AND ".join(parts) if parts else ""
+    return where, values
+
