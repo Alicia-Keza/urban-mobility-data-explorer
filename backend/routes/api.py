@@ -287,3 +287,39 @@ def trends_daily():
     } for r in rows])
 
 
+
+
+def zone_totals(args):
+    # Totals per pickup zone. Used by both the map and the "top zones" chart.
+    rows = grouped(
+        args,
+        trips_select="t.pu_location_id AS zone_id, zpu.zone_name AS zone, "
+                     "zpu.borough AS borough, COUNT(*) AS trips, "
+                     "COALESCE(SUM(t.total_amount), 0) AS revenue, "
+                     "AVG(t.fare_amount) AS avg_fare, "
+                     "AVG(t.avg_speed_mph) AS avg_speed, "
+                     "AVG(t.tip_pct) AS avg_tip_pct",
+        summary_select="s.pu_location_id AS zone_id, zpu.zone_name AS zone, "
+                       "zpu.borough AS borough, SUM(s.trips_n) AS trips, "
+                       "COALESCE(SUM(s.sum_total), 0) AS revenue, "
+                       "SUM(s.sum_fare) / SUM(s.trips_n) AS avg_fare, "
+                       "SUM(s.sum_speed) / SUM(s.trips_n) AS avg_speed, "
+                       "SUM(s.sum_tip_pct) / SUM(s.trips_n) AS avg_tip_pct",
+        group_by="GROUP BY zone_id, zone, borough",
+    )
+    for r in rows:
+        r["zone_id"] = int(r["zone_id"])
+        r["trips"] = int(r["trips"])
+        r["revenue"] = round(float(r["revenue"]), 2)
+        r["avg_fare"] = round(float(r["avg_fare"]), 2)
+        r["avg_speed"] = round(float(r["avg_speed"]), 2)
+        r["avg_tip_pct"] = round(float(r["avg_tip_pct"]), 2)
+    return rows
+
+
+@api.get("/zones/stats")
+def zone_stats():
+    # Colors the map: one total per pickup zone.
+    return jsonify(zone_totals(request.args))
+
+
