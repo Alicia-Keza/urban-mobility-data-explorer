@@ -56,4 +56,16 @@ class MinHeap:
             self.items[i], self.items[smallest] = self.items[smallest], self.items[i] #swap
             i = smallest #keep sinking from the smallest child's spot  
 
+    def replace_smallest(self,value,zone):
+        self.items[0] = (value,zone) #overwrite the front item
+        self.bubble_down(0) #let it sink to its spot    
+
+    def take_smallest(self):
+        front = self.items[0] #remember the front (smallest) item
+        last = self.items.pop() #remove the last item
+        if self.items: #if the heap isn't empty now
+            self.items[0] = last #move that last item to the front
+            self.bubble_down(0) #let it sink so the heap stays valid
+        return front #give back the item we removed
+    
      
