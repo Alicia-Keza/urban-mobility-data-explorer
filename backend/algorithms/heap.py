@@ -26,4 +26,18 @@ class MinHeap:
     def smallest(self):
         return self.items[0] #smallest item is always at the front
     
+    def add(self,value,zone):
+        self.items.append((value,zone)) #put new item at the end
+        self.bubble_up (len(self.items) - 1) #let it climb to its spot
+    
+    def bubble_up(self,i):
+        #move an item up while it is smaller than its parent
+        while i > 0:
+            parent = (i - 1) // 2
+            if self.items[i][0] < self.items[parent][0]:
+                self.items[i], self.items[parent] = self.items[parent], self.items[i] #swap
+                i = parent #keep climbing from the parent's spot
+            else:
+                break #parent is already smaller, so stop
+    
     
