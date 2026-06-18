@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Mobility Data Explorer - NYC Yellow Taxi, January 2019</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="shell">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-mark"></span>
+                <h1>Urban Mobility</h1>
+                <p>NYC yellow taxi · January 2019</p>
+            </div>
+            <div class="topbar-status" id="status-pill">warming up..</div>
+        </header>
+
+        <section class="filters" id="filters">
+            <div class="filter">
+                <label>From</label>
+                <input type="date" id="f-date-from" min="2019-01-01" max="2019-01-31" value="2019-01-01">
+            </div>
+            <div class="filter">
+                <label>To</label>
+                <input type="date" id="f-date-to" min="2019-01-01" max="2019-01-31" value="2019-01-31">
+            </div>
+            <div class="filter">
+                <label>Hour from</label>
+                <select id="f-hour-from"></select>
+            </div>
+            <div class="filter">
+                <label>Hour to</label>
+                <select id="f-hour-to"></select>
+            </div>
+            <div class="filter">
+                <label>Pickup borough</label>
+                <select id="f-borough"><option value="">All boroughs</option></select>
+            </div>
+            <div class="filter">
+                <label>Payment</label>
+                <select id="f-payment"><option value="">All payments</option></select>
+            </div>
+            <div class="filter">
+                <label>Fare ($)</label>
+                <div class="range-pair">
+                    <input type="number" id="f-min-fare" placeholder="min" min="0" step="1">
+                    <input type="number" id="f-max-fare" placeholder="max" min="0" step="1">
+                </div>
+            </div>
+            <div class="filter">
+                <label>Distance (mi)</label>
+                <div class="range-pair">
+                    <input type="number" id="f-min-dist" placeholder="min" min="0" step="0.5">
+                    <input type="number" id="f-max-dist" placeholder="max" min="0" step="0.5">
+                </div>
+            </div> 
+            <div class="filter filter-actions">
+                <button id="btn-reset" class="btn">Reset</button>
+                <button id="btn-apply" class="btn btn-primary">Apply</button>
+            </div>
+        </section>
+        
+        <section class="kpis" id="kpis">
+            <div class="kpi"><span class="kpi-label">Trips</span><span class="kpi-value" id="kpi-trips">-</span></div>
+            <div class="kpi"><span class="kpi-label">Revenue</span><span class="kpi-value" id="kpi-revenue">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg fare</span><span class="kpi-value" id="kpi-avg-fare">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg distance</span><span class="kpi-value" id="kpi-dist">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg duration</span><span class="kpi-value" id="kpi-dur">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg speed</span><span class="kpi-value" id="kpi-speed">-</span></div>
+        </section>
+    </div>
+    
+    
+</body>
+</html>
