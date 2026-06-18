@@ -88,7 +88,19 @@
                 <div id="map"></div>
                 <div class="legend" id="map-legend"></div>
             </section>
-                
+            <section class="card">
+                <div class="card-head">
+                    <h2>Top zones <span class="tag" title="Ranked by a hand implemented bound min-heap -0(N log K)">custom heap</span> </h2>
+                    <select id="hour-metric" class="inline-select">
+                        <option value="trips">By trips</option>
+                        <option value="revenue"> By revenue</option>
+                        <option value="avg_fare">By avg fare</option>
+                        <option value="avg_tip_pct">By tip%</option>
+                    </select>
+                </div>
+                <div class="chart-wrap tall"> <canvas id="chart-top"></canvas></div>
+            </section>
+
         </main>
     </div>
 
