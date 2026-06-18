@@ -241,3 +241,49 @@ def trips():
     return jsonify({"total": total, "page": page, "limit": limit, "rows": rows})
 
 
+
+@api.get("/trends/hourly")
+def trends_hourly():
+    # Trips and average speed for each hour of the day (0..23).
+    rows = grouped(
+        request.args,
+        trips_select="t.pickup_hour AS hour, COUNT(*) AS trips, "
+                     "AVG(t.fare_amount) AS avg_fare, "
+                     "AVG(t.avg_speed_mph) AS avg_speed, "
+                     "AVG(t.tip_pct) AS avg_tip_pct",
+        summary_select="s.pickup_hour AS hour, SUM(s.trips_n) AS trips, "
+                       "SUM(s.sum_fare) / SUM(s.trips_n) AS avg_fare, "
+                       "SUM(s.sum_speed) / SUM(s.trips_n) AS avg_speed, "
+                       "SUM(s.sum_tip_pct) / SUM(s.trips_n) AS avg_tip_pct",
+        group_by="GROUP BY hour ORDER BY hour",
+    )
+    return jsonify([{
+        "hour": int(r["hour"]),
+        "trips": int(r["trips"]),
+        "avg_fare": round(float(r["avg_fare"]), 2),
+        "avg_speed": round(float(r["avg_speed"]), 2),
+        "avg_tip_pct": round(float(r["avg_tip_pct"]), 2),
+    } for r in rows])
+
+
+@api.get("/trends/daily")
+def trends_daily():
+    # Trips and revenue for each day of the month.
+    rows = grouped(
+        request.args,
+        trips_select="t.pickup_day AS day, COUNT(*) AS trips, "
+                     "COALESCE(SUM(t.total_amount), 0) AS revenue, "
+                     "MAX(t.is_weekend) AS is_weekend",
+        summary_select="s.pickup_day AS day, SUM(s.trips_n) AS trips, "
+                       "COALESCE(SUM(s.sum_total), 0) AS revenue, "
+                       "MAX(s.is_weekend) AS is_weekend",
+        group_by="GROUP BY day ORDER BY day",
+    )
+    return jsonify([{
+        "day": int(r["day"]),
+        "trips": int(r["trips"]),
+        "revenue": round(float(r["revenue"]), 2),
+        "is_weekend": int(r["is_weekend"]),
+    } for r in rows])
+
+
