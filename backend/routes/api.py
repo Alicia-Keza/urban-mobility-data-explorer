@@ -107,3 +107,33 @@ def trips_where(args):
     where = " WHERE " + " AND ".join(parts) if parts else ""
     return where, values
 
+
+
+def summary_where(args):
+    parts = ["s.pickup_day BETWEEN %s AND %s"]
+    values = [day_number(args.get("date_from"), 1), 
+              day_number(args.get("date_to"), 31)]
+    if args.get("hour_from") not in (None, ""):
+        parts.append("s.pickup_hour >= %s")
+        values.append(int(args["hour_from"]))
+    if args.get("hour_to") not in (None, ""):
+        parts.append("s.pickup_hour <= %s")
+        values.append(int(args["hour_to"]))
+    if args.get("borough"):
+        parts.append("zpu.borough = %s")
+        values.append(args["borough"])
+    if args.get("payment"):
+        parts.append("s.payment_type_id = %s")
+        values.append(int(args["payment"]))
+    return " WHERE " + " AND ".join(parts), values
+
+
+def grouped(args, trips_select, summary_select, group_by=""):
+    if using_full_table(args):
+        where, values = trips_where(args)
+        sql = f"SELECT {trips_select} {TRIPS_FROM} {where} {group_by}"
+    else:
+        where, values = summary_where(args)
+        sql = f"SELECT {summary_select} {SUMMARY_FROM} {where} {group_by}"
+    return query_all(sql, values)
+
