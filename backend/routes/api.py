@@ -347,3 +347,37 @@ def zones_top():
                     "zones": ranked})
 
 
+
+
+@api.get("/breakdown/payment")
+def breakdown_payment():
+    # Trips and average tip for each payment type. Needs the payment_types
+    # join on both paths, so it writes its own SQL.
+    args = request.args
+    if using_full_table(args):
+        where, values = trips_where(args)
+        rows = query_all(f"""
+            SELECT pt.description AS payment, COUNT(*) AS trips,
+                   AVG(t.tip_pct) AS avg_tip_pct
+            {TRIPS_FROM}
+            JOIN payment_types pt ON pt.payment_type_id = t.payment_type_id
+            {where}
+            GROUP BY pt.description
+        """, values)
+    else:
+        where, values = summary_where(args)
+        rows = query_all(f"""
+            SELECT pt.description AS payment, SUM(s.trips_n) AS trips,
+                   SUM(s.sum_tip_pct) / SUM(s.trips_n) AS avg_tip_pct
+            {SUMMARY_FROM}
+            JOIN payment_types pt ON pt.payment_type_id = s.payment_type_id
+            {where}
+            GROUP BY pt.description
+        """, values)
+    return jsonify([{
+        "payment": r["payment"],
+        "trips": int(r["trips"]),
+        "avg_tip_pct": round(float(r["avg_tip_pct"]), 2),
+    } for r in rows])
+
+
