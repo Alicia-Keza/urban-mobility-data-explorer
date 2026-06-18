@@ -323,3 +323,27 @@ def zone_stats():
     return jsonify(zone_totals(request.args))
 
 
+
+
+@api.get("/zones/top")
+def zones_top():
+    # The "top zones" chart. We get the per-zone totals (in no order) and then
+    # rank them with our own hand-written heap, not a SQL ORDER BY.
+    args = request.args
+    metric = args.get("metric", "trips")
+    if metric not in TOP_METRICS:
+        return jsonify({"error": f"metric must be one of {sorted(TOP_METRICS)}"}), 400
+    k = min(int(args.get("k", 10)), 50)
+
+    zones = zone_totals(args)
+    ranked = top_k(zones, lambda z: float(z[metric]), k)
+
+    for position, zone in enumerate(ranked, start=1):
+        zone["rank"] = position
+        zone["trip_count"] = zone["trips"]   # the chart reads this name
+
+    return jsonify({"metric": metric, "k": k,
+                    "ranked_by": "hand-written min-heap, O(N log K)",
+                    "zones": ranked})
+
+
