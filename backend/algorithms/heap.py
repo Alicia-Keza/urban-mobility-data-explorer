@@ -40,4 +40,20 @@ class MinHeap:
             else:
                 break #parent is already smaller, so stop
     
-    
+    def bubble_down(self,i):
+        #move an item down while a child is smaller than it
+        n = len(self.items)
+        while True:
+            left = 2 * i + 1
+            right = 2 * i + 2
+            smallest = i #assume the current item is smallest for now
+            if left < n and self.items[left][0] < self.items[smallest][0]:
+                smallest = left #left child is smaller
+            if right < n and self.items[right][0] < self.items[smallest][0]:
+                smallest = right #right child is smaller
+            if smallest == i:
+                break #item is already smaller than both children, so stop
+            self.items[i], self.items[smallest] = self.items[smallest], self.items[i] #swap
+            i = smallest #keep sinking from the smallest child's spot  
+
+     
