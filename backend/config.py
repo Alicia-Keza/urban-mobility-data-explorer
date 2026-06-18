@@ -1,31 +1,22 @@
-import mysql.connector.pooling
+import os
 
-from backend.config import Config
+from dotenv import load_dotenv
 
-pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="um_pool",
-    pool_size=8,
-    host=Config.DB_HOST,
-    port=Config.DB_PORT,
-    user=Config.DB_USER,
-    password=Config.DB_PASSWORD,
-    database=Config.DB_NAME,
-)
+# The project root is one folder up from this file (backend/ -> project/).
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-def query_all(sql, params=None):
-    # Run a SELECT and give back every row as a dict, like {"trips": 100}.
-    connection = pool.get_connection()
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute(sql, params or ())
-        rows = cursor.fetchall()
-        cursor.close()
-        return rows
-    finally:
-        # Always hand the connection back to the pool, even if the query failed.
-        connection.close()
 
-def query_one(sql, params=None):
-    # Same as query_all but for queries that should return just one row.
-    rows = query_all(sql, params)
-    return rows[0] if rows else None
+class Config:
+    # Where MySQL is running.
+    DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+    DB_PORT = int(os.getenv("DB_PORT", "3306"))
+    # Which user, password and database to use.
+    DB_USER = os.getenv("DB_USER", "um_app")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+    DB_NAME = os.getenv("DB_NAME", "urban_mobility")
+    # Port the website runs on.
+    APP_PORT = int(os.getenv("APP_PORT", "5001"))
+    # The map-shapes file the API hands to the frontend.
+    GEOJSON_PATH = os.path.join(BASE_DIR, "data", "processed",
+                                "taxi_zones.geojson")
