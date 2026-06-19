@@ -136,7 +136,38 @@ const Charts = {
     });
   },
 
-  
+   // Payment chart: distribution of payment types as a doughnut.
+  renderPayment(rows) {
+    this.draw("chart-payment", {
+      type: "doughnut",
+      data: {
+        labels: rows.map(r => r.payment),
+        datasets: [{
+          data: rows.map(r => r.trips),
+          backgroundColor: this.PALETTE
+        }]
+      }
+    });
+  },
+
+// Bar chart: pickups per borough
+  renderBorough(rows) {
+    this.draw("chart-borough", {
+      type: "bar",
+      data: {
+        labels: rows.map(r => r.borough),
+        datasets: [{
+          label: "Pickups",
+          data: rows.map(r => r.trips),
+          backgroundColor: this.TEAL_SOFT
+        }]
+      },
+      options: {
+        scales: {
+          x: this.axis(),
+          y: this.shortAxis()
+        }
+      }
+    });
+  }
 };
-
-
