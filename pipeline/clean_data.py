@@ -90,4 +90,31 @@ def clean_chunk (df, known_zones):
     duration_min = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60.0
     speed_mph = df["trip_distance"] / (duration / 60.0) 
     
-    
+    money_cols = [
+        "fare_amount", "extra", "mta_tax", "tip_amount", "tolls_amount", "improvement_surcharge", "total_amount", "congestion_surcharge"
+    ]
+    must_be-present = ["VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance", "RatecodeID", "PULocationID", "DOLocationID", "payment_type", "fare_amount", "total_amount"]     
+ 
+    id_cols = ["VendorID", "tpep_pickup_datetime","tpep_dropoff_datetime", "PULocationID", "DOLocationID", "RatecodeID", "trip_distance","total_amount"]
+
+    rules = [ 
+        ("missing_important_value", df[must_be_present].isnull().any(axis=1)),
+        ("duplicate_row", df.duplicated(subset=id_cols)),
+        ("pickup_not_in_january",
+            (df["tpep_pickup_datetime"] < JAN_START) | (df["tpep_pickup_datetime"] >= FEB_START)
+        ),("dropoff_before_pickup", duration_min <=0),
+        ("trip_too_long", duration_min > MAX_DURATION_MIN),
+        ("distance_zero_or_less", df["trip_distance"] <= 0),
+        ("distance-too-long", df["trip_distance"] > MAX_DISTANCE_MI),
+        ("speed-too-high", speed_mph > MAX_SPEED_MPH)&(duration_min > 0),
+        ("fare-below_minimum", df["fare_amount"] < MIN_FARE_USD),
+        ("total_zero_or_less", df["total_amount"] <= 0),
+        ("total-too-high", df["total_amount"] > MAX_TOTAL_USD),
+        ("negative_money", (df[money_cols] < 0).any(axis=1)),
+        ("bad_passenger_count", (df["passenger_count"] <= 0) | (df["passenger_count"] > 6)),
+        ("unknown_pickup_zone", ~df["PULocationID"].isin(known_zones)),
+        ("unknown_dropoff_zone", ~df["DOLocationID"].isin(known_zones)),
+        ("bad_rate_code", ~df["RatecodeID"].isin([1, 2, 3, 4, 5, 6])),
+        ("bad_payment_type", ~df["payment_type"].isin([1, 2, 3, 4, 5, 6])),
+        ("bad_store_flag", ~df["store_and_fwd_flag"].isin(["Y", "N"])),
+    ]
