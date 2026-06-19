@@ -1,4 +1,4 @@
-CREATE DATABASE IF NOT EXISTS urban_mobility;
+CREATE DATABASE IF NOT EXISTS urban_mobility
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
