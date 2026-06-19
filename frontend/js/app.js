@@ -168,5 +168,24 @@ const App = {
             Charts.renderHourly(hourly);
             Charts.renderDaily(daily);
     },
+    async refreshBreakdown(){
+      const filter = API.currentFilters();
+      const [payment, borough]= await Promise.all([
+        API.get("/breakdown/payment",filters),
+        API.get("/breakdown/borough",filters),
+      ]);
+      Charts.renderPayment(payment);
+      Charts.renderBorough(borough); 
+    },
+
+    async refreshTable(){
+        const data = await API.get("/trips",{
+            ...API.currentFilters(),
+            sort:this.sort,
+            order:this.order,
+            page:this.page,
+            limit:25,
+        });
+    }
 }    
 
