@@ -23,4 +23,18 @@ const Charts = {
             border: { color: "rgba(26,25,23,0.08)" },
         };
     },
+
+    // Shorten big numbers on an axis
+    shorten(value) {
+        if (typeof value !== "number") return value;
+        if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
+        if (value >= 1_000) return Math.round(value / 1_000) + "k";
+        return value;
+    },
+
+    shortAxis() {
+        const a = this.axis();
+        a.ticks.callback = (value) => this.shorten(value);
+        return a;
+    },
 };
