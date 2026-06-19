@@ -37,4 +37,52 @@ const Charts = {
         a.ticks.callback = (value) => this.shorten(value);
         return a;
     },
+
+    // Build a chart, replacing any existing one with the same id.
+    draw(id, config) {
+        if (this.saved[id]) this.saved[id].destroy();
+        config.options = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: "#5c5a54", boxWidth: 10, font: { size: 11 } } },
+            },
+            ...config.options,
+        };
+        this.saved[id] = new Chart(document.getElementById(id), config);
+    },
+
+  renderHourly(rows) {
+    this.draw("chart-hourly", {
+      type: "line",
+      data: {
+        labels: rows.map(r => r.hour + ":00"),
+        datasets: [
+          {
+            label: "Trips",
+            data: rows.map(r => r.trips),
+            borderColor: this.INK,
+            tension: 0.3,
+            yAxisID: "y"
+          },
+          {
+            label: "Speed",
+            data: rows.map(r => r.avg_speed),
+            borderColor: this.TEAL,
+            tension: 0.3,
+            yAxisID: "y1"
+          }
+        ]
+      },
+      options: {
+        scales: {
+          x: this.axis(),
+          y: this.shortAxis(),
+          y1: this.axis()
+        }
+      }
+    });
+  },
 };
+
+
