@@ -83,6 +83,27 @@ const Charts = {
       }
     });
   },
+
+  // Daily chart: number of trips for each day of the week.
+  renderDaily(rows) {
+    this.draw("chart-daily", {
+      type: "bar",
+      data: {
+        labels: rows.map(r => String(r.day)),
+        datasets: [{
+          label: "Trips",
+          data: rows.map(r => r.trips),
+          backgroundColor: this.TEAL_SOFT
+        }]
+      },
+      options: {
+        scales: {
+          x: this.axis(),
+          y: this.shortAxis()
+        }
+      }
+    });
+  },
 };
 
 
