@@ -184,6 +184,24 @@ def build_summary_table(conn):
     print(f" {cursor.fetchone()[0]:,} summary rows in {time.time() - start:.1f}s")
     cursor.close()
 
+def main():
+    conn = connect()
+    run_schema(conn)
+    conn.close()
+
+    conn = connect(database=os.getenv("DB_NAME" , "uraban_mobility"))
+    load_lookups(conn)
+    load_trips(conn)
+    add_indexes(conn)
+    build_summary_table(conn)
+    conn.close()
+    print("Database load complete.")
+
+if __name__ == "__main__":
+    main()
+
+
+
     
 
 
