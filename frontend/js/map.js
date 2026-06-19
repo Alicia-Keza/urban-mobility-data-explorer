@@ -66,9 +66,9 @@ const ZoneMap = {
         this.layer = L.geoJSON(this.geojson, {
             //color each zone by its value
             style: (feature) => {
-                const row =this.stats.get(feature.properties.location_id);
+                const row = this.stats.get(feature.properties.location_id);
                 return {
-                    weight : 0.8, color: "#ffffff",   // thin white border
+                    weight: 0.8, color: "#ffffff",   // thin white border
                     fillColor: this.colorFor(row ? Number(row[this.metric]) : null, breaks),
                     fillOpacity: 0.9,
                 };
@@ -97,4 +97,17 @@ const ZoneMap = {
         this.renderLegend(breaks);
     },
 
-}
+    // Color key under the map
+    renderLegend(breaks) {
+        const el = document.getElementById("map-legend");
+        let html = "<span>" + this.METRIC_LABELS[this.metric] + "</span>"; // title
+        let low = 0;
+        breaks.concat(Infinity).forEach((high, i) => {  //one swatch per band
+            const range = high === Infinity ? 
+                ">" + this.shortNumber(low) : this.shortNumber(low) + " to " + this.shortNumber(high);
+            html += '<span><i class="swatch" style="background:' + this.COLORS[i] + '"></i> ' + range + "</span>";
+            low = high;
+        });
+        el.innerHTML = html;
+    }
+};
