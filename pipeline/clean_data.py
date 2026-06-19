@@ -68,5 +68,9 @@ OUT_COLUMNS = [
     "trip_duration_min",
     "avg_speed_mph", "fare_per_mile", "tip_pct",
     "pickup_day", "pickup_hour", "day_of_week", "is_weekend",
-    
+
 ]
+
+def load_known_zone_ids():
+    zones = pd.read_csv(ZONE_LOOKUP)
+    return set(zones["LocationID"].astype(int))
