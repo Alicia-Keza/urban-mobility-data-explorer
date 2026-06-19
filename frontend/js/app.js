@@ -122,6 +122,28 @@ const App = {
         }
            
     },
-    
+    async refreshSummary(){
+         const stats = await API.get("/summary", API.currentFilters());
+
+    // Show money as $1.2M / $12.3k / $9.50 depending on size.
+    function money(amount) {
+      if (amount >= 1_000_000) return "$" + (amount / 1_000_000).toFixed(2) + "M";
+      if (amount >= 1_000) return "$" + (amount / 1_000).toFixed(1) + "k";
+      return "$" + Number(amount).toFixed(2);
+    }
+
+    document.getElementById("kpi-trips").textContent =
+      Number(stats.trips).toLocaleString();
+    document.getElementById("kpi-revenue").textContent = money(stats.revenue || 0);
+    document.getElementById("kpi-fare").textContent =
+      stats.avg_fare ? "$" + stats.avg_fare.toFixed(2) :"-";
+    document.getElementById("kpi-dist").textContent =
+      stats.avg_distance ? stats.avg_distance.toFixed(2) + "mi" :"-";
+    document.getElementById("kpi-dur").textContent =
+      stats.avg_duration ? stats.avg_duration.toFixed(1) + "min" :"-";
+    document.getElementById("kpi-speed").textContent =
+      stats.avg_speed ? stats.avg_speed.toFixed(1) + "mph" :"-";
+
+    }
 }    
 
