@@ -29,5 +29,30 @@ const Zonemap = {
         this.geojson = await API.get("/zones/geojson");  //zone outlines, reused on recolor
     },
 
+    // Five cut-offs that split zones into six even-sized groups (so a few busyzones don't make everywhere else look empty)
+    makeBreaks(values) {
+        if (!values.length) return [];
+        const sorted = [...values].sort((a, b) => a - b);  // sort low to high
+        const at = (fraction) =>                           // value at a position (0.2 = 20% in)
+            sorted[Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))];
+        return [at(0.2), at(0.4), at(0.6), at(0.8), at(0.95)];
+    },
+
+    // pick a shade: higher value = deeper teal
+    colorFor(value, breaks) {
+        if (value === undefined || value === null) return "#f1f0ea"; // no data
+        let step = 0;
+        while (step < breaks.length && value > breaks[step]) step++; // darker per break passed
+        return this.COLORS[step];
+
+    },
+
+    //shorten big numbers, e.g. 12000 -> "12.0k"
+    shortNumber(value) {
+        if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
+        if (value >= 1_000) return (value / 1_000).toFixed(1) + "k";
+        return Number(value).toFixed(value % 1 === 0 ? 0 : 1);
+    },
+
     
 }
