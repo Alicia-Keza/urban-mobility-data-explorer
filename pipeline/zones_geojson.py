@@ -10,3 +10,6 @@ ZONES_ZIP = os.path.join(BASE_DIR, "data", "taxi_zones.zip")
 EXTRACT_DIR = os.path.join(BASE_DIR, "data", "taxi_zones_shp")
 OUT_PATH = os.path.join(BASE_DIR, "data", "processed", "taxi_zones.geojson")
 
+to_latlon = Transformer.from_crs("EPSG:2263", "EPSG:4326", always_xy=True)
+
+
