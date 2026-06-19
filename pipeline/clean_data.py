@@ -130,4 +130,13 @@ def clean_chunk (df, known_zones):
 
     good = df.loc[~is_bad].copy()
     good_duration = duration_min.loc[~is_bad]
+
+    good["trip_duration_min"] = good_duration.round(2)
+    good["avg_speed_mph"] = (good["trip_distance"] / (good_duration / 60.0)).round(2)
+    good["fare_per_mile"] = (good["fare_amount"] / good["trip_distance"]).round(2)
+    good["tip_pct"] = (good["tip_amount"] / good["fare_amount"] * 100.0).round(2)
+    good["pickup_day"] = good["tpep_pickup_datetime"].dt.day
+    good["pickup_hour"] = good["tpep_pickup_datetime"].dt.hour
+    good["day_of_week"] = good["tpep_pickup_datetime"].dt.dayofweek
+    good["is_weekend"] = (good["day_of_week"] >= 5).astype(int)
     
