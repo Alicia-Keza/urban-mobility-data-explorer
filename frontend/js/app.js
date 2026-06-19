@@ -209,8 +209,8 @@ const App = {
       data.total.toLocaleString() + " trips match";
     document.getElementById("pg-prev").disabled = this.page <= 1;
     document.getElementById("pg-next").disabled = this.page >= pageCount;
-    }
-    
-
-}    
+    },
+};
+// starting everything once the page loads
+document.addEventListener("DOMContentLoaded", () => App.init());   
 
