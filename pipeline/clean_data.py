@@ -118,3 +118,16 @@ def clean_chunk (df, known_zones):
         ("bad_payment_type", ~df["payment_type"].isin([1, 2, 3, 4, 5, 6])),
         ("bad_store_flag", ~df["store_and_fwd_flag"].isin(["Y", "N"])),
     ]
+
+    reason = pd.Series("", index=df.index)
+    for name,breaks_rule in rules:
+        breaks_rule = breaks_rule.fillna(True)
+        reason[reason == ""] & breaks_rule = name
+    
+    is_bad = reason != ""
+    dropped = df.loc[is_bad,RAW_COLUMNS].copy()
+    dropped["exclusion_reason"] = reason[is_bad]
+
+    good = df.loc[~is_bad].copy()
+    good_duration = duration_min.loc[~is_bad]
+    
