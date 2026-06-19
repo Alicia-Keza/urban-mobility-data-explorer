@@ -175,3 +175,37 @@ def main():
     
     first_clean = True
     first_dropped = True
+    for block_number, chunk in enumerate(reader, start=1):
+        total_rows += len(chunk)
+        good, dropped = clean_chunk(chunk, known_zones)
+        total_kept += len(good)
+
+        for name, count in dropped["exclusion_reason"].value_counts().items():
+            reason_counts[name] = reason_counts.get(name, 0) + int(count)
+        good.to_csv(CLEAN_OUT, mode="w" if first_clean else "a", header=False, index=False)
+        first_clean = False
+        if len(dropped):
+            dropped.to_csv(EXCLUDED_OUT, mode="w" if first_dropped else "a", header=first_dropped, index=False)
+            first_dropped = False
+
+        percent = total_rows / 7_667_792 * 100.0
+        print(f"block {block_number:3d}: | read {total_rows:>9,} rows | kept {total_kept:7d} rows | dropped {total_rows - total_kept:7d} ({percent:5.1f}% | "f"kept {total_kept:>9,} | {time.time() - start:6.1f}s", flush=True)
+
+        summary = {
+            "rows_read": total_rows,
+            "rows_kept": total_kept,
+            "rows_dropped": total_rows - total_kept,
+            "drop_rate_pct": round((total_rows - total_kept) / total_rows * 100.0, 3),
+            "drop_reasons": dict(sorted(reason_counts.items(), key=lambda pair: -pair[1])),
+            "runtime_seconds": round(time.time() - start, 1),
+                
+        }
+        with open(SUMMARY_OUT, "w") as f:
+            json.dump(summary, f, indent=2)
+
+        print(json.dumps(summary, indent=2))
+        print(f"\nClean file: {CLEAN_OUT}")
+        print(f"Dropped log: {EXCLUDED_OUT}")
+
+if __name__ == "__main__":
+    main()
