@@ -139,4 +139,19 @@ def clean_chunk (df, known_zones):
     good["pickup_hour"] = good["tpep_pickup_datetime"].dt.hour
     good["day_of_week"] = good["tpep_pickup_datetime"].dt.dayofweek
     good["is_weekend"] = (good["day_of_week"] >= 5).astype(int)
-    
+
+    good = good.rename(columns={
+        "VendorID": "vendor_id",
+        "tpep_pickup_datetime": "pickup_datetime",
+        "tpep_dropoff_datetime": "dropoff_datetime",
+        "RatecodeID": "rate_code_id",
+        "PULocationID": "pu_location_id",
+        "DOLocationID": "do_location_id",
+        "payment_type": "payment_type_id"
+    })
+
+    for col in ["vendor_id", "passenger_count", "rate_code_id", "pu_location_id", "do_location_id", "payment_type_id"]:
+        good[col] = good[col].astype(int)
+
+    good["pickup_datetime"] = good["pickup_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
+    good["dropoff_datetime"] = good["dropoff_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
