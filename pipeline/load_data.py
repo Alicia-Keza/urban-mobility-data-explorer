@@ -120,6 +120,30 @@ def load_trips(conn):
               f" - check the lookup tables")    
     cursor.close()
 
+def add_indexes(conn):
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT INDEX_NAME FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'trips'
+    """)
+
+    existing = {row[0] for row in cursor.fetchall()}
+
+    for name, definition in INDEXES:
+        if name in existing:
+            print(f"index {name} already exists, skipping")
+            continue
+        print(f"creating index {name}...")
+        start = time.time()
+        cursor.execute(f"CREATE INDEX {name} ON {definition}")
+        print(f" done in {time.time() - start:.1f}s")
+
+        cursor.execute("ANALYZE TABLE trips")
+        cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        
 
     
     
