@@ -101,6 +101,27 @@ const App = {
         this.refreshTable();
     });
     },
+    //refreshing the dashboard means refreshing the map, top-zones chart and trips table
+
+    async refreshEverything() {
+        this.setStatus("counting trips...");
+        try{
+             await Promise.all([
+             this.refreshSummary(),
+             this.refreshMap(),
+                this.refreshTopZones(),
+                this.refreshTrends(),
+                this.refreshBreakdown(),
+                this.refreshTable(),            
+            ]);
+            this.setStatus("");
+        } catch(error){
+            console.error(error);
+            this,this.setStatus("something went wrong, check the console");
+
+        }
+           
+    },
     
 }    
 
