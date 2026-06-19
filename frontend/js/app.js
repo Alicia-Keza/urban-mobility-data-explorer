@@ -33,4 +33,14 @@ const API = {
         }
         return pairs.length ? "?" + pairs.join("&") : "";
     },
+
+    // Fetch JSON from one of the /api addresses.
+    async get(path,params={}) {
+        const response = await fetch(this.base + path + this.buildQuery(params));
+        if (!response.ok) {
+            throw new Error(path + " failed with HTTP " + response.status);
+        }
+        return response.json();
+    },
+     
 };
