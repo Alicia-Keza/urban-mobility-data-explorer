@@ -73,7 +73,34 @@ const App = {
         document.getElementById("top-metric").addEventListener("change", () => {
             this.refreshTopZones();
         });
-    }
+          // Clicking a table header sorts by that column. Clicking it again flips
 
+    document.querySelectorAll("#trips-table th[data-sort]").forEach((header) => {
+      header.addEventListener("click", () => {
+        const column = header.dataset.sort;
+        if (this.sort === column) {
+          this.order = this.order === "desc" ? "asc" : "desc";
+        } else {
+          this.sort = column;
+          this.order = "desc";
+        }
+        document.querySelectorAll("#trips-table th").forEach((h) =>
+          h.classList.toggle("active", h === header));
+        this.page = 1;
+        this.refreshTable();
+      });
+    });
+    document.getElementById("pg-prev").addEventListener("click", () => {
+        if (this.page > 1) {
+            this.page--;
+            this.refreshTable();
+        }
+    });
+    document.getElementById("pg-next").addEventListener("click", () => {
+        this.page++;
+        this.refreshTable();
+    });
+    },
+    
 }    
 
