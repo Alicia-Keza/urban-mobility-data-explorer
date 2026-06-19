@@ -43,8 +43,27 @@ const App = {
             paymentBox.add(new Option(p.description, p.payment_type_id)));
     },
 
+    // wire up the buttons, dropdowns and sortable table headers    
 
+    connectButtons() {
+        document.getElementById("btn-apply").addEventListener("click", () => {
+            this.page = 1;
+            this.refreshEverything();
+        });
 
+        document.getElementById("btn-reset").addEventListener("click", () => {
+            document.getElementById("f-date-from").value = "2019-01-01";
+            document.getElementById("f-date-to").value = "2019-01-31";
+            document.getElementById("f-hour-from").value = 0;
+            document.getElementById("f-hour-to").value = 23;
 
-}
+            ["f-borough", "f-payment","f-min-fare", "f-max-fare",
+                "f-min-dist", "f-max-dist"].forEach((id) => {
+                document.getElementById(id).value = "";
+            });
+            this.page = 1;
+            this.refreshEverything();
+        });
+    }
+}    
 
