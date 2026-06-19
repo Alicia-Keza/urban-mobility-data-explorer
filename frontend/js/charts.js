@@ -104,6 +104,39 @@ const Charts = {
       }
     });
   },
+
+  //  Top chart: top zones by a given metric (trips, revenue, or average fare).
+   renderTop(payload) {
+    const zones = payload.zones;
+    const metric = payload.metric;
+
+    const map = {
+      trips: "trip_count",
+      revenue: "revenue",
+      avg_fare: "avg_fare"
+    };
+
+    this.draw("chart-top", {
+      type: "bar",
+      data: {
+        labels: zones.map(z => z.zone),
+        datasets: [{
+          label: metric,
+          data: zones.map(z => z[map[metric]]),
+          backgroundColor: this.TEAL_SOFT
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        scales: {
+          x: this.shortAxis(),
+          y: this.axis()
+        }
+      }
+    });
+  },
+
+  
 };
 
 
