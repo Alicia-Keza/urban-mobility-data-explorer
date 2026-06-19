@@ -25,3 +25,48 @@ MAX_SPEED_MPH = 90.0
 MAX_TOTAL_USD = 500.0
 MAX_FARE_USD = 2.50
 
+RAW_COLUMNS = [
+    "VendorID",
+    "tpep_pickup_datetime",
+    "tpep_dropoff_datetime",
+    "passenger_count",
+    "trip_distance",
+    "RatecodeID",
+    "store_and_fwd_flag",
+    "PULocationID",
+    "DOLocationID",
+    "payment_type",
+    "fare_amount",
+    "extra",
+    "mta_tax",
+    "tip_amount",
+    "tolls_amount",
+    "improvement_surcharge",
+    "total_amount", "congestion_surcharge"
+
+]
+
+OUT_COLUMNS = [
+    "VendorID",
+    "tpep_pickup_datetime",
+    "dropoff_datetime",
+    "passenger_count",
+    "trip_distance",
+    "rate_code_id",
+    "store_and_fwd_flag",
+    "pu-location_id",
+    "do-location_id",
+    "payment_type_id",
+    "fare_amount",
+    "extra",
+    "mta_tax",
+    "tip_amount",
+    "tolls_amount",
+    "improvement_surcharge",
+    "total_amount",
+    "congestion_surcharge",
+    "trip_duration_min",
+    "avg_speed_mph", "fare_per_mile", "tip_pct",
+    "pickup_day", "pickup_hour", "day_of_week", "is_weekend",
+    
+]
