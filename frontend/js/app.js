@@ -64,6 +64,16 @@ const App = {
             this.page = 1;
             this.refreshEverything();
         });
+
+        // switching the map metric only needs the map redrawn
+        document.getElementById("map-metric").addEventListener("change", (event) => {
+            this.refreshMap();
+        });
+        // switching the top-zones metric only needs the top-zones redrawn
+        document.getElementById("top-metric").addEventListener("change", () => {
+            this.refreshTopZones();
+        });
     }
+
 }    
 
