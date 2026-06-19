@@ -144,6 +144,29 @@ const App = {
     document.getElementById("kpi-speed").textContent =
       stats.avg_speed ? stats.avg_speed.toFixed(1) + "mph" :"-";
 
-    }
+    },
+    async refreshMap(){
+        const stats = await API.get("/zones/stats",API.currentFilters());
+        ZoneMap.render(stats);
+    },
+
+    async refreshTopZones(){
+        const metric= document.getElementById("top-metric").value;
+        const payload = await API.get("/zones/top",{
+            ...API.currentFilters(),
+            k: 10,
+            });
+            Charts.renderTop(payload);
+    },
+
+    async refreshTrends(){
+        const filters = API.currentFilters();
+        const [hourly, daily] = await Promise.all([
+            API.get("/trends/hourly",filters),
+        API.get("/trends/daily", filters),
+            ]);
+            Charts.renderHourly(hourly);
+            Charts.renderDaily(daily);
+    },
 }    
 
