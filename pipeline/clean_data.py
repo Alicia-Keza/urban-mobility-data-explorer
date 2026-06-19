@@ -105,11 +105,11 @@ def clean_chunk (df, known_zones):
         ),("dropoff_before_pickup", duration_min <=0),
         ("trip_too_long", duration_min > MAX_DURATION_MIN),
         ("distance_zero_or_less", df["trip_distance"] <= 0),
-        ("distance-too-long", df["trip_distance"] > MAX_DISTANCE_MI),
-        ("speed-too-high", speed_mph > MAX_SPEED_MPH)&(duration_min > 0),
-        ("fare-below_minimum", df["fare_amount"] < MIN_FARE_USD),
+        ("distance_too_long", df["trip_distance"] > MAX_DISTANCE_MI),
+        ("speed_too_high", speed_mph > MAX_SPEED_MPH)&(duration_min > 0),
+        ("fare_below_minimum", df["fare_amount"] < MIN_FARE_USD),
         ("total_zero_or_less", df["total_amount"] <= 0),
-        ("total-too-high", df["total_amount"] > MAX_TOTAL_USD),
+        ("total_too_high", df["total_amount"] > MAX_TOTAL_USD),
         ("negative_money", (df[money_cols] < 0).any(axis=1)),
         ("bad_passenger_count", (df["passenger_count"] <= 0) | (df["passenger_count"] > 6)),
         ("unknown_pickup_zone", ~df["PULocationID"].isin(known_zones)),
@@ -155,3 +155,7 @@ def clean_chunk (df, known_zones):
 
     good["pickup_datetime"] = good["pickup_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
     good["dropoff_datetime"] = good["dropoff_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    return good[OUT_COLUMNS], dropped
+
+def main():
