@@ -159,3 +159,19 @@ def clean_chunk (df, known_zones):
     return good[OUT_COLUMNS], dropped
 
 def main():
+    if not os.path.exists(RAW_TRIPS):
+        sys.exit(f"Raw file not found: {RAW_TRIPS}")
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+    known_zones = load_known_zone_ids()
+    reason_counts = {}
+    total_rows = 0
+    total_kept = 0
+    start = time.time()
+
+    reader = pd.read_csv(RAW_TRIPS, chunksize=CHUNK_SIZE, dtype={"VendorID": "Int64", "passenger_count": "Int64", "RatecodeID": "Int64", "PULocationID": "Int64", "DOLocationID": "Int64", "payment_type": "Int64", "store_and_fwd_flag": "object"} )
+    
+    first_clean = True
+    first_dropped = True
