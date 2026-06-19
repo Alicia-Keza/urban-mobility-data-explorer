@@ -186,6 +186,31 @@ const App = {
             page:this.page,
             limit:25,
         });
+        const body = document.querySelector("#trips-table tbody");
+    body.innerHTML = data.rows.map((r) =>
+      "<tr>" +
+        "<td>" + r.pickup_datetime.slice(5, 16) + "</td>" +
+        '<td class="route"><b>' + r.pickup_zone + "</b> to " + r.dropoff_zone + "</td>" +
+        "<td>" + r.trip_distance.toFixed(2) + "</td>" +
+        "<td>" + r.trip_duration_min.toFixed(0) + "</td>" +
+        "<td>" + r.avg_speed_mph.toFixed(1) + "</td>" +
+        "<td>$" + r.fare_amount.toFixed(2) + "</td>" +
+        "<td>$" + r.tip_amount.toFixed(2) + "</td>" +
+        "<td><b>$" + r.total_amount.toFixed(2) + "</b></td>" +
+        "<td>" + r.payment + "</td>" +
+      "</tr>"
+    ).join("");
+
+    const pageCount = Math.max(1, Math.ceil(data.total / data.limit));
+    if (this.page > pageCount) this.page = pageCount;
+    document.getElementById("pg-info").textContent =
+      "page " + this.page + " of " + pageCount.toLocaleString();
+    document.getElementById("table-count").textContent =
+      data.total.toLocaleString() + " trips match";
+    document.getElementById("pg-prev").disabled = this.page <= 1;
+    document.getElementById("pg-next").disabled = this.page >= pageCount;
     }
+    
+
 }    
 
