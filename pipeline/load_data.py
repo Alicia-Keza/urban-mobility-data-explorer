@@ -143,7 +143,50 @@ def add_indexes(conn):
         cursor.fetchall()
         conn.commit()
         cursor.close()
-        
+
+def build_summary_table(conn):
+    cursor = conn.cursor()
+    print("Building the summary table (agg_zone_time)...")
+    start = time.time()
+    cursor.execute("""
+      CREATE TABLE IF NOT EXISTS agg_zone_time (
+          pickup_day TINYINT UNSIGNGED NOT NULL,
+          pickup_hour TINYINT UNSIGNED NOT NULL, 
+          is_weekend TINYINT(1)
+          pu_location_id SMALLINT UNSIGNED NOT NULL,
+          payment_type_id TINYINT UNSIGNED NOT NULL,
+          trips_n INT UNSIGNED NOT NULL,
+          sum_total DDECIMAL(14,2) NOT NULL,
+          sum_fare DECIMAL(14,2) NOT NULL,
+          sum_distance DECIMAL(12,2) NOT NULL, 
+          sum_duration DECIMAL(12,2) NOT NULL, 
+          sum_speed  DECIMAL(12,2) NOT NULL, 
+          sum_tip_pct DECIMAL(12,2) NOT NULL,
+          PRIMARY KEY (pickup_day, pickup_hour, pu_location_id, payment_type_id),
+          INDEX idx_agg_zone (pu_location_id),
+          INDEX idx_agg_payment (payment_type_id) ENGINE=InnoDB                                                                                                                                       ) 
+                   
+    """
+    )
+
+    cursor.execute("TRUNCATE TABLE agg_zone_time")
+    cursor.execute("""
+       INSERT INTO agg_zone_time
+       SELECT pickup_day, pickup_hour, MAX(is_weekend), pu_location,
+              payment_type_id, COUNT(*), SUM(fare_amount),
+               SUM(trip_distance, SUM(trip_duration_min), SUM(avg_speed_mph),
+                   SUM(tip_pct)
+        FROM trips
+        GROUPS BY pickup_day, pickup_hour, pu_location_id, payment_type_id                                        
+    """)
+    conn.commit()
+    cursor.execute( "SELECT COUNT(*) FROM agg_zone_time")
+    print(f" {cursor.fetchone()[0]:,} summary rows in {time.time() - start:.1f}s")
+    cursor.close()
+
+    
+
+
 
     
     
