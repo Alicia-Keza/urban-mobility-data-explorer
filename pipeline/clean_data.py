@@ -74,3 +74,19 @@ OUT_COLUMNS = [
 def load_known_zone_ids():
     zones = pd.read_csv(ZONE_LOOKUP)
     return set(zones["LocationID"].astype(int))
+
+def clean_chunk (df, known_zones):
+    df = df.copy()
+
+    df["tpep_pickup_datetime"]= pd.to_datetime(
+        df["tpep_pickup_datetime"], errors="coerce")
+
+    df["tpep_dropoff_datetime"] = pd.to_datetime(
+        df["tpep_dropoff_datetime"], errors="coerce")
+    df["store_and_fwd_flag"] =( df["store_and_fwd_flag"].astype(str).str.strip().str.upper())
+
+    df["congestion_surcharge"] = df["congestion_surcharge"].fillna(0.0)
+
+    duration = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60.0
+    speed = df["trip_distance"] / (duration / 60.0) 
+    
