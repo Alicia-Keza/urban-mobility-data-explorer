@@ -87,6 +87,7 @@ def clean_chunk (df, known_zones):
 
     df["congestion_surcharge"] = df["congestion_surcharge"].fillna(0.0)
 
-    duration = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60.0
-    speed = df["trip_distance"] / (duration / 60.0) 
+    duration_min = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60.0
+    speed_mph = df["trip_distance"] / (duration / 60.0) 
+    
     
