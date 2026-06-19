@@ -20,4 +20,17 @@ const API = {
             max_dist: value("f-max-dist"),
         };
     },
+
+    // Turn {a: 1, b: ""} into "?a=1". Empty values are skipped, so the backend
+    // simply ignores any filter the user did not fill in.
+    buildQuery(params) {
+        const pairs = [];
+        for (const key in params) {
+            const val = params[key];
+            if (val !== "" && val !== null && val !== undefined) {
+                pairs.push(encodeURIComponent(key) + "=" + encodeURIComponent(val));
+            }
+        }
+        return pairs.length ? "?" + pairs.join("&") : "";
+    },
 };
