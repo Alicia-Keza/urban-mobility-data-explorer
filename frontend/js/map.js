@@ -1,7 +1,7 @@
 //Draws NYC taxi zones on a leaflet map and colors each zone by a chosen 
 //number (trips,revenue,etc.). Light basemap so the teal colors stand out.
 
-const Zonemap = {
+const ZoneMap = {
     map: null,  // the leaflet map
     layer: null,  // the colored zones on screen now
     geojson: null,  // zone shapes, loaded once
@@ -54,5 +54,47 @@ const Zonemap = {
         return Number(value).toFixed(value % 1 === 0 ? 0 : 1);
     },
 
-    
+    //redraw the zones with fresh numbers (called when filters change)
+    render(statRows) {
+        this.stats = new Map(statRows.map((row) => [row.zone_id, row])); // index stats by zone id
+        const values = statRows.map((row) => Number(row[this.metric]))
+            .filter((value) => !isNaN(value)); // keep numeric values only
+        const breaks = this.makeBreaks(values);
+
+        if (this.layer) this.layer.remove(); // drop the old colored layer
+
+        this.layer = L.geoJSON(this.geojson, {
+            //color each zone by its value
+            style: (feature) => {
+                const row =this.stats.get(feature.properties.location_id);
+                return {
+                    weight : 0.8, color: "#ffffff",   // thin white border
+                    fillColor: this.colorFor(row ? Number(row[this.metric]) : null, breaks),
+                    fillOpacity: 0.9,
+                };
+            },
+            // tooltip + hover effect for each zone
+            onEachFeature: (feature, zoneLayer) => {    
+                const props = feature.properties;
+                const row = this.stats.get(props.location_id);
+
+                const lines = ["<b>" + props.zone + "</b>", props.borough]; //tooltip text
+                if (row) {
+                    lines.push("Trips: " + Number(row.trips).toLocaleString());
+                    lines.push("Revenue: $" + this.shortNumber(row.revenue));
+                    lines.push("Avg fare: $" + row.avg_fare);
+                    lines.push("Avg speed: " + row.avg_speed + " mph");
+                } else{
+                    lines.push("No pickups under current filters");
+                }
+                zoneLayer.bindTooltip(lines.join("<br>"), { sticky: true });
+
+                zoneLayer.on("mouseover", () =>   //darken outline on hover
+                    zoneLayer.setStyle({ weight: 1.6, color: "#0f766e" }));
+                zoneLayer.on("mouseout", () => this.layer.resetStyle(zoneLayer)); //reset on leave
+            }
+        }).addTo(this.map);
+        this.renderLegend(breaks);
+    },
+
 }
