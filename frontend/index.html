@@ -69,7 +69,7 @@
         <section class="kpis" id="kpis">
             <div class="kpi"><span class="kpi-label">Trips</span><span class="kpi-value" id="kpi-trips">-</span></div>
             <div class="kpi"><span class="kpi-label">Revenue</span><span class="kpi-value" id="kpi-revenue">-</span></div>
-            <div class="kpi"><span class="kpi-label">Avg fare</span><span class="kpi-value" id="kpi-avg-fare">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg fare</span><span class="kpi-value" id="kpi-fare">-</span></div>
             <div class="kpi"><span class="kpi-label">Avg distance</span><span class="kpi-value" id="kpi-dist">-</span></div>
             <div class="kpi"><span class="kpi-label">Avg duration</span><span class="kpi-value" id="kpi-dur">-</span></div>
             <div class="kpi"><span class="kpi-label">Avg speed</span><span class="kpi-value" id="kpi-speed">-</span></div>
@@ -91,7 +91,7 @@
             <section class="card">
                 <div class="card-head">
                     <h2>Top zones <span class="tag" title="Ranked by a hand implemented bound min-heap -0(N log K)">custom heap</span> </h2>
-                    <select id="hour-metric" class="inline-select">
+                    <select id="top-metric" class="inline-select">
                         <option value="trips">By trips</option>
                         <option value="revenue"> By revenue</option>
                         <option value="avg_fare">By avg fare</option>
@@ -102,9 +102,15 @@
             </section>
             <section class="card">
                 <div class="card-head">
+                    <h2>Trips & speed by hour of day</h2>
+                </div>
+                <div class="chart-wrap"><canvas id="chart-hourly"></canvas></div>
+            </section>
+            <section class="card">
+                <div class="card-head">
                     <h2>Daily trips across the month</h2>
                 </div>
-                <div class="chart-wrap><canvas id="chart-daily"></canvas></div>
+                <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
             </section>
 
             <section class="card">
@@ -146,7 +152,7 @@
                 </div>
                 <div class="pager">
                     <button id="pg-prev" class="btn">Prev</button>
-                    <span id="page-info"></span>
+                    <span id="pg-info"></span>
                     <button id="pg-next" class="btn">Next</button>
                 </div>
             </section>  
