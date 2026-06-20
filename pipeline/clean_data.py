@@ -5,6 +5,7 @@ import time
 
 import pandas as pd
 
+# Where the files live
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_DATA_DIR = os.path.join(BASE_DIR, "data", "yellow_tripdata_2019-01.csv")
 ZONE_LOOKUP_DIR = os.path.join(BASE_DIR, "data", "taxi_zone_lookup.csv")
@@ -14,8 +15,10 @@ CLEAN_OUT = os.path.join(OUT_DIR, "trips_clean.csv")
 EXCLUDED_OUT = os.path.join(LOG_DIR, "excluded_records.csv")
 SUMMARY_OUT = os.path.join(LOG_DIR, "pipeline_summary.json")
 
+#The file is too big to open all at once, so we read it in blocks of rows. This sets the number of rows per block
 CHUNK_SIZE = 250_000
 
+#The data is supposed to be from January 2019, so we will exclude any records with pickup times outside of that month
 JAN_START = pd.Timestamp("2019-01-01 00:00:00")
 FEB_START = pd.Timestamp("2019-02-01 00:00:00")
 
@@ -25,6 +28,7 @@ MAX_SPEED_MPH = 90.0
 MAX_TOTAL_USD = 500.0
 MAX_FARE_USD = 2.50
 
+# When we log a dropped record, we keep thr original columns 
 RAW_COLUMNS = [
     "VendorID",
     "tpep_pickup_datetime",
@@ -77,7 +81,8 @@ def load_known_zone_ids():
 
 def clean_chunk (df, known_zones):
     df = df.copy()
-
+    
+    # tidy up the columns we are about to check
     df["tpep_pickup_datetime"]= pd.to_datetime(
         df["tpep_pickup_datetime"], errors="coerce")
 
@@ -85,8 +90,10 @@ def clean_chunk (df, known_zones):
         df["tpep_dropoff_datetime"], errors="coerce")
     df["store_and_fwd_flag"] =( df["store_and_fwd_flag"].astype(str).str.strip().str.upper())
 
+    # The congestion fee only started mid-Jan, so a blank means "not charged"
     df["congestion_surcharge"] = df["congestion_surcharge"].fillna(0.0)
-
+    
+    # workout how long each trip took in minuutes and how fast it went(mph)
     duration_min = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60.0
     speed_mph = df["trip_distance"] / (duration / 60.0) 
     
@@ -95,8 +102,10 @@ def clean_chunk (df, known_zones):
     ]
     must_be-present = ["VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance", "RatecodeID", "PULocationID", "DOLocationID", "payment_type", "fare_amount", "total_amount"]     
  
+    # Columns that togehter identify a repeated trip
     id_cols = ["VendorID", "tpep_pickup_datetime","tpep_dropoff_datetime", "PULocationID", "DOLocationID", "RatecodeID", "trip_distance","total_amount"]
 
+    # each rule as (name, rows_that_break_it)
     rules = [ 
         ("missing_important_value", df[must_be_present].isnull().any(axis=1)),
         ("duplicate_row", df.duplicated(subset=id_cols)),
@@ -119,6 +128,7 @@ def clean_chunk (df, known_zones):
         ("bad_store_flag", ~df["store_and_fwd_flag"].isin(["Y", "N"])),
     ]
 
+    # Give each bad row the name of the first rule it breaks
     reason = pd.Series("", index=df.index)
     for name,breaks_rule in rules:
         breaks_rule = breaks_rule.fillna(True)
@@ -131,6 +141,7 @@ def clean_chunk (df, known_zones):
     good = df.loc[~is_bad].copy()
     good_duration = duration_min.loc[~is_bad]
 
+    # Add extra columns we worked out from the raw ones
     good["trip_duration_min"] = good_duration.round(2)
     good["avg_speed_mph"] = (good["trip_distance"] / (good_duration / 60.0)).round(2)
     good["fare_per_mile"] = (good["fare_amount"] / good["trip_distance"]).round(2)
@@ -140,6 +151,7 @@ def clean_chunk (df, known_zones):
     good["day_of_week"] = good["tpep_pickup_datetime"].dt.dayofweek
     good["is_weekend"] = (good["day_of_week"] >= 5).astype(int)
 
+    #Rename the columns to easier database names
     good = good.rename(columns={
         "VendorID": "vendor_id",
         "tpep_pickup_datetime": "pickup_datetime",
@@ -150,9 +162,11 @@ def clean_chunk (df, known_zones):
         "payment_type": "payment_type_id"
     })
 
+    # Make the id colums whole numbers 
     for col in ["vendor_id", "passenger_count", "rate_code_id", "pu_location_id", "do_location_id", "payment_type_id"]:
         good[col] = good[col].astype(int)
 
+    # Write the timestamps back as plain text for the csv
     good["pickup_datetime"] = good["pickup_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
     good["dropoff_datetime"] = good["dropoff_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -170,8 +184,10 @@ def main():
     total_rows = 0
     total_kept = 0
     start = time.time()
-
-    reader = pd.read_csv(RAW_TRIPS, chunksize=CHUNK_SIZE, dtype={"VendorID": "Int64", "passenger_count": "Int64", "RatecodeID": "Int64", "PULocationID": "Int64", "DOLocationID": "Int64", "payment_type": "Int64", "store_and_fwd_flag": "object"} )
+    
+    # Read the integer columns as a type that can hold banks, so a missing value doesn't crash the read
+    reader = pd.read_csv(RAW_TRIPS, chunksize=CHUNK_SIZE, dtype={"VendorID": "Int64", "passenger_count":
+                                                                  "Int64", "RatecodeID": "Int64", "PULocationID": "Int64", "DOLocationID": "Int64", "payment_type": "Int64", "store_and_fwd_flag": "object"} )
     
     first_clean = True
     first_dropped = True
@@ -179,9 +195,12 @@ def main():
         total_rows += len(chunk)
         good, dropped = clean_chunk(chunk, known_zones)
         total_kept += len(good)
-
+        
+        # Keep a running tally of how many rows each rule dropped
         for name, count in dropped["exclusion_reason"].value_counts().items():
             reason_counts[name] = reason_counts.get(name, 0) + int(count)
+        
+        #Append this block to the output files
         good.to_csv(CLEAN_OUT, mode="w" if first_clean else "a", header=False, index=False)
         first_clean = False
         if len(dropped):
