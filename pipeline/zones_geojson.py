@@ -32,6 +32,42 @@ def main():
     features = []
     for shape_record in reader.shapeRecords():
         record = dict(zip(field_names, shape_record.record))
-        shape = shape_record.shape.__geo_interface__       
+        shape = shape_record.shape.__geo_interface__
+
+        if shape["type"] == "Polygon":
+            coordinates = [convert_ring(ring) for ring in shape["coordinates"]]
+        elif shape["type"] == "MultiPolygon":
+            coordinates = [
+                [convert_ring(ring) for ring in polygon]
+                for polygon in shape["coordinates"]
+            ]
+        else:
+            continue 
+
+        features.append({
+            "type": "Feature",
+            "properties": {
+                "location_id": int(record["LocationID"]),
+                "zone": record["zone"],
+                "borough": record["borough"],
+            },
+            "geometry":
+            {"type": shape["type"], "coordinates": coordinates},
+        })
+
+    geojson = { "type": "FeatureCollection", "features": features}
+    with open(OUT_PATH, "w") as f:
+        json.dump(geojson, f, separators=(",", ":"))
+
+    size_mb = os.path.getsize(OUT_PATH) / 1e6
+    print(f"Wrote {len(features)} zone shapes to {OUT_PATH} ({size_mb:.1f} MB)")
+
+if __name__ == "__main__":
+    main()
+
+
+
+        
+                       
 
 
