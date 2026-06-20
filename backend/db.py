@@ -1,6 +1,6 @@
 import mysql.connector.pooling
 
-from backend.db import Config
+from backend.config import Config
 
 pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="um_pool",
