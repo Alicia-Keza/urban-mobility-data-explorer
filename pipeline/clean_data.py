@@ -1,0 +1,230 @@
+import json
+import os
+import sys
+import time
+
+import pandas as pd
+
+# Where the files live
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW_DATA_DIR = os.path.join(BASE_DIR, "data", "yellow_tripdata_2019-01.csv")
+ZONE_LOOKUP_DIR = os.path.join(BASE_DIR, "data", "taxi_zone_lookup.csv")
+OUT_DIR = os.path.join(BASE_DIR, "data", "processed")
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+CLEAN_OUT = os.path.join(OUT_DIR, "trips_clean.csv")
+EXCLUDED_OUT = os.path.join(LOG_DIR, "excluded_records.csv")
+SUMMARY_OUT = os.path.join(LOG_DIR, "pipeline_summary.json")
+
+#The file is too big to open all at once, so we read it in blocks of rows. This sets the number of rows per block
+CHUNK_SIZE = 250_000
+
+#The data is supposed to be from January 2019, so we will exclude any records with pickup times outside of that month
+JAN_START = pd.Timestamp("2019-01-01 00:00:00")
+FEB_START = pd.Timestamp("2019-02-01 00:00:00")
+
+MAX_DISTANCE_MI = 100.0  # miles
+MAX_DURATION_MIN = 480.0  # minutes
+MAX_SPEED_MPH = 90.0
+MAX_TOTAL_USD = 500.0
+MAX_FARE_USD = 2.50
+
+# When we log a dropped record, we keep thr original columns 
+RAW_COLUMNS = [
+    "VendorID",
+    "tpep_pickup_datetime",
+    "tpep_dropoff_datetime",
+    "passenger_count",
+    "trip_distance",
+    "RatecodeID",
+    "store_and_fwd_flag",
+    "PULocationID",
+    "DOLocationID",
+    "payment_type",
+    "fare_amount",
+    "extra",
+    "mta_tax",
+    "tip_amount",
+    "tolls_amount",
+    "improvement_surcharge",
+    "total_amount", "congestion_surcharge"
+
+]
+
+OUT_COLUMNS = [
+    "VendorID",
+    "tpep_pickup_datetime",
+    "dropoff_datetime",
+    "passenger_count",
+    "trip_distance",
+    "rate_code_id",
+    "store_and_fwd_flag",
+    "pu-location_id",
+    "do-location_id",
+    "payment_type_id",
+    "fare_amount",
+    "extra",
+    "mta_tax",
+    "tip_amount",
+    "tolls_amount",
+    "improvement_surcharge",
+    "total_amount",
+    "congestion_surcharge",
+    "trip_duration_min",
+    "avg_speed_mph", "fare_per_mile", "tip_pct",
+    "pickup_day", "pickup_hour", "day_of_week", "is_weekend",
+
+]
+
+def load_known_zone_ids():
+    zones = pd.read_csv(ZONE_LOOKUP)
+    return set(zones["LocationID"].astype(int))
+
+def clean_chunk (df, known_zones):
+    df = df.copy()
+    
+    # tidy up the columns we are about to check
+    df["tpep_pickup_datetime"]= pd.to_datetime(
+        df["tpep_pickup_datetime"], errors="coerce")
+
+    df["tpep_dropoff_datetime"] = pd.to_datetime(
+        df["tpep_dropoff_datetime"], errors="coerce")
+    df["store_and_fwd_flag"] =( df["store_and_fwd_flag"].astype(str).str.strip().str.upper())
+
+    # The congestion fee only started mid-Jan, so a blank means "not charged"
+    df["congestion_surcharge"] = df["congestion_surcharge"].fillna(0.0)
+    
+    # workout how long each trip took in minuutes and how fast it went(mph)
+    duration_min = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60.0
+    speed_mph = df["trip_distance"] / (duration / 60.0) 
+    
+    money_cols = [
+        "fare_amount", "extra", "mta_tax", "tip_amount", "tolls_amount", "improvement_surcharge", "total_amount", "congestion_surcharge"
+    ]
+    must_be-present = ["VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance", "RatecodeID", "PULocationID", "DOLocationID", "payment_type", "fare_amount", "total_amount"]     
+ 
+    # Columns that togehter identify a repeated trip
+    id_cols = ["VendorID", "tpep_pickup_datetime","tpep_dropoff_datetime", "PULocationID", "DOLocationID", "RatecodeID", "trip_distance","total_amount"]
+
+    # each rule as (name, rows_that_break_it)
+    rules = [ 
+        ("missing_important_value", df[must_be_present].isnull().any(axis=1)),
+        ("duplicate_row", df.duplicated(subset=id_cols)),
+        ("pickup_not_in_january",
+            (df["tpep_pickup_datetime"] < JAN_START) | (df["tpep_pickup_datetime"] >= FEB_START)
+        ),("dropoff_before_pickup", duration_min <=0),
+        ("trip_too_long", duration_min > MAX_DURATION_MIN),
+        ("distance_zero_or_less", df["trip_distance"] <= 0),
+        ("distance_too_long", df["trip_distance"] > MAX_DISTANCE_MI),
+        ("speed_too_high", speed_mph > MAX_SPEED_MPH)&(duration_min > 0),
+        ("fare_below_minimum", df["fare_amount"] < MIN_FARE_USD),
+        ("total_zero_or_less", df["total_amount"] <= 0),
+        ("total_too_high", df["total_amount"] > MAX_TOTAL_USD),
+        ("negative_money", (df[money_cols] < 0).any(axis=1)),
+        ("bad_passenger_count", (df["passenger_count"] <= 0) | (df["passenger_count"] > 6)),
+        ("unknown_pickup_zone", ~df["PULocationID"].isin(known_zones)),
+        ("unknown_dropoff_zone", ~df["DOLocationID"].isin(known_zones)),
+        ("bad_rate_code", ~df["RatecodeID"].isin([1, 2, 3, 4, 5, 6])),
+        ("bad_payment_type", ~df["payment_type"].isin([1, 2, 3, 4, 5, 6])),
+        ("bad_store_flag", ~df["store_and_fwd_flag"].isin(["Y", "N"])),
+    ]
+
+    # Give each bad row the name of the first rule it breaks
+    reason = pd.Series("", index=df.index)
+    for name,breaks_rule in rules:
+        breaks_rule = breaks_rule.fillna(True)
+        reason[reason == ""] & breaks_rule = name
+    
+    is_bad = reason != ""
+    dropped = df.loc[is_bad,RAW_COLUMNS].copy()
+    dropped["exclusion_reason"] = reason[is_bad]
+
+    good = df.loc[~is_bad].copy()
+    good_duration = duration_min.loc[~is_bad]
+
+    # Add extra columns we worked out from the raw ones
+    good["trip_duration_min"] = good_duration.round(2)
+    good["avg_speed_mph"] = (good["trip_distance"] / (good_duration / 60.0)).round(2)
+    good["fare_per_mile"] = (good["fare_amount"] / good["trip_distance"]).round(2)
+    good["tip_pct"] = (good["tip_amount"] / good["fare_amount"] * 100.0).round(2)
+    good["pickup_day"] = good["tpep_pickup_datetime"].dt.day
+    good["pickup_hour"] = good["tpep_pickup_datetime"].dt.hour
+    good["day_of_week"] = good["tpep_pickup_datetime"].dt.dayofweek
+    good["is_weekend"] = (good["day_of_week"] >= 5).astype(int)
+
+    #Rename the columns to easier database names
+    good = good.rename(columns={
+        "VendorID": "vendor_id",
+        "tpep_pickup_datetime": "pickup_datetime",
+        "tpep_dropoff_datetime": "dropoff_datetime",
+        "RatecodeID": "rate_code_id",
+        "PULocationID": "pu_location_id",
+        "DOLocationID": "do_location_id",
+        "payment_type": "payment_type_id"
+    })
+
+    # Make the id colums whole numbers 
+    for col in ["vendor_id", "passenger_count", "rate_code_id", "pu_location_id", "do_location_id", "payment_type_id"]:
+        good[col] = good[col].astype(int)
+
+    # Write the timestamps back as plain text for the csv
+    good["pickup_datetime"] = good["pickup_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
+    good["dropoff_datetime"] = good["dropoff_datetime"].dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    return good[OUT_COLUMNS], dropped
+
+def main():
+    if not os.path.exists(RAW_TRIPS):
+        sys.exit(f"Raw file not found: {RAW_TRIPS}")
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+    known_zones = load_known_zone_ids()
+    reason_counts = {}
+    total_rows = 0
+    total_kept = 0
+    start = time.time()
+    
+    # Read the integer columns as a type that can hold banks, so a missing value doesn't crash the read
+    reader = pd.read_csv(RAW_TRIPS, chunksize=CHUNK_SIZE, dtype={"VendorID": "Int64", "passenger_count":
+                                                                  "Int64", "RatecodeID": "Int64", "PULocationID": "Int64", "DOLocationID": "Int64", "payment_type": "Int64", "store_and_fwd_flag": "object"} )
+    
+    first_clean = True
+    first_dropped = True
+    for block_number, chunk in enumerate(reader, start=1):
+        total_rows += len(chunk)
+        good, dropped = clean_chunk(chunk, known_zones)
+        total_kept += len(good)
+        
+        # Keep a running tally of how many rows each rule dropped
+        for name, count in dropped["exclusion_reason"].value_counts().items():
+            reason_counts[name] = reason_counts.get(name, 0) + int(count)
+        
+        #Append this block to the output files
+        good.to_csv(CLEAN_OUT, mode="w" if first_clean else "a", header=False, index=False)
+        first_clean = False
+        if len(dropped):
+            dropped.to_csv(EXCLUDED_OUT, mode="w" if first_dropped else "a", header=first_dropped, index=False)
+            first_dropped = False
+
+        percent = total_rows / 7_667_792 * 100.0
+        print(f"block {block_number:3d}: | read {total_rows:>9,} rows | kept {total_kept:7d} rows | dropped {total_rows - total_kept:7d} ({percent:5.1f}% | "f"kept {total_kept:>9,} | {time.time() - start:6.1f}s", flush=True)
+
+        summary = {
+            "rows_read": total_rows,
+            "rows_kept": total_kept,
+            "rows_dropped": total_rows - total_kept,
+            "drop_rate_pct": round((total_rows - total_kept) / total_rows * 100.0, 3),
+            "drop_reasons": dict(sorted(reason_counts.items(), key=lambda pair: -pair[1])),
+            "runtime_seconds": round(time.time() - start, 1),
+                
+        }
+        with open(SUMMARY_OUT, "w") as f:
+            json.dump(summary, f, indent=2)
+
+        print(json.dumps(summary, indent=2))
+        print(f"\nClean file: {CLEAN_OUT}")
+        print(f"Dropped log: {EXCLUDED_OUT}")
+
+if __name__ == "__main__":
+    main()
