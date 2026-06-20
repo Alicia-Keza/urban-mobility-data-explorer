@@ -7,8 +7,8 @@ import pandas as pd
 
 # Where the files live
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_DATA_DIR = os.path.join(BASE_DIR, "data", "yellow_tripdata_2019-01.csv")
-ZONE_LOOKUP_DIR = os.path.join(BASE_DIR, "data", "taxi_zone_lookup.csv")
+RAW_TRIPS = os.path.join(BASE_DIR, "data", "yellow_tripdata_2019-01.csv")
+ZONE_LOOKUP = os.path.join(BASE_DIR, "data", "taxi_zone_lookup.csv")
 OUT_DIR = os.path.join(BASE_DIR, "data", "processed")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 CLEAN_OUT = os.path.join(OUT_DIR, "trips_clean.csv")
@@ -26,7 +26,7 @@ MAX_DISTANCE_MI = 100.0  # miles
 MAX_DURATION_MIN = 480.0  # minutes
 MAX_SPEED_MPH = 90.0
 MAX_TOTAL_USD = 500.0
-MAX_FARE_USD = 2.50
+MIN_FARE_USD = 2.50
 
 # When we log a dropped record, we keep thr original columns 
 RAW_COLUMNS = [
@@ -51,15 +51,15 @@ RAW_COLUMNS = [
 ]
 
 OUT_COLUMNS = [
-    "VendorID",
-    "tpep_pickup_datetime",
+    "vendor_id",
+    "pickup_datetime",
     "dropoff_datetime",
     "passenger_count",
     "trip_distance",
     "rate_code_id",
     "store_and_fwd_flag",
-    "pu-location_id",
-    "do-location_id",
+    "pu_location_id",
+    "do_location_id",
     "payment_type_id",
     "fare_amount",
     "extra",
@@ -95,12 +95,12 @@ def clean_chunk (df, known_zones):
     
     # workout how long each trip took in minuutes and how fast it went(mph)
     duration_min = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60.0
-    speed_mph = df["trip_distance"] / (duration / 60.0) 
+    speed_mph = df["trip_distance"] / (duration_min / 60.0) 
     
     money_cols = [
         "fare_amount", "extra", "mta_tax", "tip_amount", "tolls_amount", "improvement_surcharge", "total_amount", "congestion_surcharge"
     ]
-    must_be-present = ["VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance", "RatecodeID", "PULocationID", "DOLocationID", "payment_type", "fare_amount", "total_amount"]     
+    must_be_present = ["VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count", "trip_distance", "RatecodeID", "PULocationID", "DOLocationID", "payment_type", "fare_amount", "total_amount"]     
  
     # Columns that togehter identify a repeated trip
     id_cols = ["VendorID", "tpep_pickup_datetime","tpep_dropoff_datetime", "PULocationID", "DOLocationID", "RatecodeID", "trip_distance","total_amount"]
@@ -115,7 +115,7 @@ def clean_chunk (df, known_zones):
         ("trip_too_long", duration_min > MAX_DURATION_MIN),
         ("distance_zero_or_less", df["trip_distance"] <= 0),
         ("distance_too_long", df["trip_distance"] > MAX_DISTANCE_MI),
-        ("speed_too_high", speed_mph > MAX_SPEED_MPH)&(duration_min > 0),
+        ("speed_too_high", (speed_mph > MAX_SPEED_MPH)&(duration_min > 0)),
         ("fare_below_minimum", df["fare_amount"] < MIN_FARE_USD),
         ("total_zero_or_less", df["total_amount"] <= 0),
         ("total_too_high", df["total_amount"] > MAX_TOTAL_USD),
@@ -132,8 +132,7 @@ def clean_chunk (df, known_zones):
     reason = pd.Series("", index=df.index)
     for name,breaks_rule in rules:
         breaks_rule = breaks_rule.fillna(True)
-        reason[reason == ""] & breaks_rule = name
-    
+        reason[(reason == "") & breaks_rule] = name
     is_bad = reason != ""
     dropped = df.loc[is_bad,RAW_COLUMNS].copy()
     dropped["exclusion_reason"] = reason[is_bad]
