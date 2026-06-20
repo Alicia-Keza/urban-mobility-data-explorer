@@ -169,7 +169,7 @@ const App = {
             Charts.renderDaily(daily);
     },
     async refreshBreakdown(){
-      const filter = API.currentFilters();
+      const filters = API.currentFilters();
       const [payment, borough]= await Promise.all([
         API.get("/breakdown/payment",filters),
         API.get("/breakdown/borough",filters),
