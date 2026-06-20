@@ -24,7 +24,7 @@ def main():
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
 
     with zipfile.ZipFile(ZONES_ZIP) as zf:
-        zf.extractall(EXTRA_DIR)
+        zf.extractall(EXTRACT_DIR)
 
     reader = shapefile.Reader(os.path.join(EXTRACT_DIR, "taxi_zones.shp"))
     field_names = [f[0] for f in reader.fields[1:]]
