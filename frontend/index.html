@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Mobility Data Explorer - NYC Yellow Taxi, January 2019</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="shell">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-mark"></span>
+                <h1>Urban Mobility</h1>
+                <p>NYC yellow taxi · January 2019</p>
+            </div>
+            <div class="topbar-status" id="status-pill">warming up..</div>
+        </header>
+
+        <section class="filters" id="filters">
+            <div class="filter">
+                <label>From</label>
+                <input type="date" id="f-date-from" min="2019-01-01" max="2019-01-31" value="2019-01-01">
+            </div>
+            <div class="filter">
+                <label>To</label>
+                <input type="date" id="f-date-to" min="2019-01-01" max="2019-01-31" value="2019-01-31">
+            </div>
+            <div class="filter">
+                <label>Hour from</label>
+                <select id="f-hour-from"></select>
+            </div>
+            <div class="filter">
+                <label>Hour to</label>
+                <select id="f-hour-to"></select>
+            </div>
+            <div class="filter">
+                <label>Pickup borough</label>
+                <select id="f-borough"><option value="">All boroughs</option></select>
+            </div>
+            <div class="filter">
+                <label>Payment</label>
+                <select id="f-payment"><option value="">All payments</option></select>
+            </div>
+            <div class="filter">
+                <label>Fare ($)</label>
+                <div class="range-pair">
+                    <input type="number" id="f-min-fare" placeholder="min" min="0" step="1">
+                    <input type="number" id="f-max-fare" placeholder="max" min="0" step="1">
+                </div>
+            </div>
+            <div class="filter">
+                <label>Distance (mi)</label>
+                <div class="range-pair">
+                    <input type="number" id="f-min-dist" placeholder="min" min="0" step="0.5">
+                    <input type="number" id="f-max-dist" placeholder="max" min="0" step="0.5">
+                </div>
+            </div> 
+            <div class="filter filter-actions">
+                <button id="btn-reset" class="btn">Reset</button>
+                <button id="btn-apply" class="btn btn-primary">Apply</button>
+            </div>
+        </section>
+        
+        <section class="kpis" id="kpis">
+            <div class="kpi"><span class="kpi-label">Trips</span><span class="kpi-value" id="kpi-trips">-</span></div>
+            <div class="kpi"><span class="kpi-label">Revenue</span><span class="kpi-value" id="kpi-revenue">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg fare</span><span class="kpi-value" id="kpi-avg-fare">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg distance</span><span class="kpi-value" id="kpi-dist">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg duration</span><span class="kpi-value" id="kpi-dur">-</span></div>
+            <div class="kpi"><span class="kpi-label">Avg speed</span><span class="kpi-value" id="kpi-speed">-</span></div>
+        </section>
+        <main class="grid">
+            <section class="card card-map">
+                <div class="card-head">
+                    <h2>Pickup activity by taxi zone</h2>
+                    <select id="map-metric" class="inline-select">
+                        <option value="trips">Trip count</option>
+                        <option value="revenue">Revenue</option>
+                        <option value="avg_fare">Avg fare</option>
+                        <option value="avg_speed">Avg speed</option>
+                    </select>
+                </div>    
+                <div id="map"></div>
+                <div class="legend" id="map-legend"></div>
+            </section>
+            <section class="card">
+                <div class="card-head">
+                    <h2>Top zones <span class="tag" title="Ranked by a hand implemented bound min-heap -0(N log K)">custom heap</span> </h2>
+                    <select id="hour-metric" class="inline-select">
+                        <option value="trips">By trips</option>
+                        <option value="revenue"> By revenue</option>
+                        <option value="avg_fare">By avg fare</option>
+                        <option value="avg_tip_pct">By tip%</option>
+                    </select>
+                </div>
+                <div class="chart-wrap tall"> <canvas id="chart-top"></canvas></div>
+            </section>
+            <section class="card">
+                <div class="card-head">
+                    <h2>Daily trips across the month</h2>
+                </div>
+                <div class="chart-wrap><canvas id="chart-daily"></canvas></div>
+            </section>
+
+            <section class="card">
+                <div class="card-head">
+                    <h2>Payment mix & tipping</h2>
+                </div>
+                <div class="chart-wrap"><canvas id="chart-payment"></canvas></div>
+            </section>
+
+            <section class="card">
+                <div class="card-head">
+                    <h2>Borough share of pickups</h2>
+                </div>
+                <div class="chart-wrap"><canvas id="chart-borough"></canvas></div>
+            </section>
+
+            <section class="card card-table">
+                <div class="card-head">
+                    <h2>Trip records</h2>
+                    <span class="muted" id="table-count"></span>
+                </div>
+                <div class="table-scroll">
+                    <table id="trips-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="pickup_datetime">Pickup</th>
+                                <th> Route </th>
+                                <th data-sort="trip_distance">Miles</th>
+                                <th data-sort="trip_duration_min">Min</th>
+                                <th data-sort="avg_speed_mph">Mph</th>
+                                <th data-sort="fare_amount">Fare</th>
+                                <th data-sort="tip_amount">Tip</th>
+                                <th data-sort="total_amount">Total</th>
+                                <th>Payment</th>
+                            </tr>
+                        </thead>  
+                        </tbody></tbody>  
+                    </table>
+                </div>
+                <div class="pager">
+                    <button id="pg-prev" class="btn">Prev</button>
+                    <span id="page-info"></span>
+                    <button id="pg-next" class="btn">Next</button>
+                </div>
+            </section>  
+        </main>
+        <footer class="foot">
+            Enterprise Web Development · Data: NYC TLC Yellow taxi trip Record, January   2019
+        </footer>   
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/charts.js@4.4.3/dist/charts.umd.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
