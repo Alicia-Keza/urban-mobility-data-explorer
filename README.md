@@ -7,6 +7,8 @@ Leaflet zone map and Chart.js visualizations.
 
 > **Video walkthrough:** https://youtu.be/KZA4qOaakus
 >
+> **Scrum board:** https://github.com/users/Alicia-Keza/projects/3/views/1
+>
 > **AI usage log:** [AI_USAGE_LOG.md](AI_USAGE_LOG.md)
 
 ---
