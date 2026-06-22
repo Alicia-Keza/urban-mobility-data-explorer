@@ -1,27 +1,36 @@
 # Urban Mobility Data Explorer
 
 A fullstack web application for exploring New York City Yellow Taxi trips
-(January 2019, 7.6M records): a Python data-cleaning pipeline, a normalized
+(January 2019, about 7.46M cleaned trips): a Python data-cleaning pipeline, a normalized
 MySQL star schema, a Flask REST API, and an interactive dashboard with a
 Leaflet zone map and Chart.js visualizations.
 
-> **Video walkthrough:** _[add your video link here]_
+> **Video walkthrough:** https://youtu.be/KZA4qOaakus
+>
+> **Scrum board:** https://github.com/users/Alicia-Keza/projects/3/views/1
+>
+> **Team participation sheet:** https://docs.google.com/spreadsheets/d/1heKVYIhDbUfLTr7VTeSpSIK7N-6PLfcJM0Nu9bvkTBw/edit
+>
+> **AI usage log:** [AI_USAGE_LOG.md](AI_USAGE_LOG.md)
 
 ---
 
 ## Architecture
 
-```
-  Raw TLC data              Pipeline (Python)          MySQL
-  - trips CSV 655MB    -->  - clean + validate    -->  - star schema
-  - zone lookup CSV         - feature engineer         - 7 indexes
-  - zones shapefile         - exclusion log            - summary table
-                                                          |
-                            Frontend (HTML/JS)            v
-                            - Leaflet map         <--  Flask REST API
-                            - Chart.js charts          - 10 endpoints
-                            - filterable table         - custom heap (top-K)
-```
+![System architecture](docs/architecture.png)
+
+The browser calls a Flask REST API, which reads from MySQL. Most dashboard
+queries are served from a pre-computed rollup table (`agg_zone_time`) in well
+under a second; fare and distance filters fall back to the indexed fact table.
+An offline pipeline cleans the raw data and loads it once.
+
+### Database schema
+
+![Entity relationship diagram](docs/erd.png)
+
+A star schema: a central `trips` fact table surrounded by four dimension tables
+(`zones`, `vendors`, `rate_codes`, `payment_types`), plus a pre-aggregated
+`agg_zone_time` rollup.
 
 ## Requirements
 
@@ -29,7 +38,69 @@ Leaflet zone map and Chart.js visualizations.
 - MySQL 8+ (local server)
 - ~3 GB free disk space (raw CSV + cleaned CSV + database)
 
-## Setup
+## Quick start (recommended): load the database dump
+
+The fastest way to get running, no raw download, no rebuild. You need MySQL
+running (or XAMPP's MySQL on Windows) and Python 3.12+.
+
+1. **Install dependencies**
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate        # macOS / Linux
+   # .venv\Scripts\activate         # Windows
+   pip install -r requirements.txt
+   ```
+
+2. **Configure `.env`.** Copy `.env.example` to `.env` and set your database
+   login. For XAMPP the defaults are user `root` with an empty password:
+
+   ```
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_USER=root
+   DB_PASSWORD=
+   DB_NAME=urban_mobility
+   APP_PORT=5001
+   ```
+
+3. **Import the database dump.** The full dump (schema + all 7.46M trips) is
+   too large for GitHub, so get `urban_mobility_full.sql` from the team, then:
+
+   ```bash
+   mysql -u root < urban_mobility_full.sql                     # macOS / Linux
+   C:\xampp\mysql\bin\mysql -u root < urban_mobility_full.sql  # Windows (XAMPP)
+   ```
+
+   (The `urban_mobility_dump.sql` in this repo is schema + lookup tables only,
+   with no trips, so use the full dump for real data.)
+
+4. **Generate the map file** (uses the zone shapefile already in the repo):
+
+   ```bash
+   python pipeline/zones_geojson.py
+   ```
+
+5. **Run it:**
+
+   ```bash
+   python -m backend.app
+   ```
+
+   Open **http://127.0.0.1:5001**.
+
+### Notes for Windows / XAMPP
+- Start **MySQL** from the XAMPP Control Panel before importing or running.
+- `mysql.exe` lives in `C:\xampp\mysql\bin`; run the import from there, or use
+  the full path shown above.
+- If `python` is not recognised, reinstall Python with "Add to PATH" ticked,
+  or use `py -3`.
+- Import the dump from the command line, not phpMyAdmin (it caps upload size).
+
+## Full setup (rebuild the database from raw data)
+
+Use this only to regenerate everything from the raw files. If you just want to
+run the app, use the Quick start above.
 
 ### 1. Get the data
 
@@ -147,7 +218,7 @@ Common filter params: `date_from`, `date_to`, `hour_from`, `hour_to`,
   min-heap (`backend/algorithms/heap.py`) - O(N log K) time, O(K) space; no
   `heapq`, no `sort()`. SQL provides unordered per-zone aggregates only.
 - **Auditable cleaning.** Every excluded record is logged with the first
-  rule it violated (17 rules; 2.66% of rows excluded). Notable finding:
+  rule it violated (18 rules; 2.66% of rows excluded). Notable finding:
   115k trips report zero passengers and 76k trips carry a `VendorID` that
   does not exist in the TLC data dictionary.
 - **Post-load indexing.** Secondary indexes are created after the bulk load

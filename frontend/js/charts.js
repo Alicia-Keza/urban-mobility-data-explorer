@@ -110,19 +110,15 @@ const Charts = {
     const zones = payload.zones;
     const metric = payload.metric;
 
-    const map = {
-      trips: "trip_count",
-      revenue: "revenue",
-      avg_fare: "avg_fare"
-    };
-
+    // Each zone object carries every metric by its own name (trips, revenue,
+    // avg_fare, avg_tip_pct, avg_speed), so we read the chosen one directly.
     this.draw("chart-top", {
       type: "bar",
       data: {
         labels: zones.map(z => z.zone),
         datasets: [{
           label: metric,
-          data: zones.map(z => z[map[metric]]),
+          data: zones.map(z => z[metric]),
           backgroundColor: this.TEAL_SOFT
         }]
       },
