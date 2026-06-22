@@ -9,6 +9,8 @@ Leaflet zone map and Chart.js visualizations.
 >
 > **Scrum board:** https://github.com/users/Alicia-Keza/projects/3/views/1
 >
+> **Team participation sheet:** https://docs.google.com/spreadsheets/d/1heKVYIhDbUfLTr7VTeSpSIK7N-6PLfcJM0Nu9bvkTBw/edit
+>
 > **AI usage log:** [AI_USAGE_LOG.md](AI_USAGE_LOG.md)
 
 ---
