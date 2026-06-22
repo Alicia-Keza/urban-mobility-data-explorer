@@ -146,6 +146,8 @@ const App = {
 
     },
     async refreshMap(){
+        // colour the map by whatever the map dropdown is set to
+        ZoneMap.metric = document.getElementById("map-metric").value;
         const stats = await API.get("/zones/stats",API.currentFilters());
         ZoneMap.render(stats);
     },
@@ -154,6 +156,7 @@ const App = {
         const metric= document.getElementById("top-metric").value;
         const payload = await API.get("/zones/top",{
             ...API.currentFilters(),
+            metric: metric,
             k: 10,
             });
             Charts.renderTop(payload);
